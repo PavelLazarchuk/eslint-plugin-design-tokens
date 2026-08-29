@@ -1,6 +1,6 @@
 {
     "name": "eslint-plugin-design-tokens",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "ESLint rules that catch hardcoded colors, spacing, typography, shadows, radii, borders, transitions and z-index in sx/style/css props and styled-components, so design tokens stay the only source of truth.",
     "license": "MIT",
     "sideEffects": false,
