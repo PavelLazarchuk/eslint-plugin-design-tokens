@@ -29,7 +29,6 @@ ruleTester.run('no-hardcoded-spacing', rule, {
 
         // Not a target prop or a target call.
         '<Box data-padding="8px" />',
-        'css`padding: 8px;`',
         'notStyled.div`padding: 8px;`',
     ],
     invalid: [
@@ -60,6 +59,18 @@ ruleTester.run('no-hardcoded-spacing', rule, {
         },
         {
             code: 'styled(Button)({ gap: "4px" })',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: '<div css={{ padding: "8px" }} />',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: '<div css={css`padding: 8px;`} />',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: 'css`padding: 8px;`',
             errors: [{ messageId: 'hardcodedSpacing' }],
         },
         {

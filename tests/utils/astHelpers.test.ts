@@ -3,6 +3,9 @@ import { parse } from 'espree';
 import type { AstNode } from '../../src/types';
 import {
     getPropDeclarations,
+    getStyledTemplateDeclarations,
+    isCssPropAttribute,
+    isCssTaggedTemplate,
     getStyledObjectDeclarations,
     isStyledObjectCall,
     isStyledTaggedTemplate,
@@ -64,6 +67,30 @@ describe('isStyledTaggedTemplate', () => {
     });
 });
 
+describe('isCssTaggedTemplate', () => {
+    it.each([
+        ['css`color: red;`', true],
+        ['styled.div`color: red;`', false],
+        ['notCss`color: red;`', false],
+        ['css.div`color: red;`', false],
+    ])('%s → %s', (code, expected) => {
+        expect(isCssTaggedTemplate(find(code, 'TaggedTemplateExpression'))).toBe(expected);
+    });
+});
+
+describe('isCssPropAttribute', () => {
+    it.each([
+        ['<Box css={{ color: "red" }} />', true],
+        ['<Box css={css`color: red;`} />', true],
+        ['<Box css={styles} />', false],
+        ['<Box css="color: red" />', false],
+        ['<Box css={other`color: red;`} />', false],
+        ['<Box sx={{ color: "red" }} />', false],
+    ])('%s → %s', (code, expected) => {
+        expect(isCssPropAttribute(find(code, 'JSXAttribute'))).toBe(expected);
+    });
+});
+
 describe('isStyledObjectCall', () => {
     it.each([
         ['styled.div({ color: "red" })', true],
@@ -85,6 +112,27 @@ describe('declaration extraction', () => {
         expect(getStyledObjectDeclarations(find('fn({ color: "red" })', 'CallExpression'))).toEqual(
             []
         );
+    });
+
+    it('reads the object form of the css prop but leaves its template form to the tag visitor', () => {
+        expect(
+            pairs(getPropDeclarations(find('<Box css={{ gap: "4px" }} />', 'JSXAttribute')))
+        ).toEqual([['gap', '4px']]);
+        expect(getPropDeclarations(find('<Box css={css`gap: 4px;`} />', 'JSXAttribute'))).toEqual(
+            []
+        );
+    });
+
+    it('reads a standalone css tag', () => {
+        const resolver = { getLocFromIndex: () => ({ line: 1, column: 0 }) };
+        expect(
+            pairs(
+                getStyledTemplateDeclarations(
+                    find('css`gap: 4px;`', 'TaggedTemplateExpression'),
+                    resolver
+                )
+            )
+        ).toEqual([['gap', '4px']]);
     });
 
     it('normalizes camelCase keys and accepts quoted ones', () => {

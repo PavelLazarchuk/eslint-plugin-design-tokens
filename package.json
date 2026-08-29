@@ -1,7 +1,7 @@
 {
     "name": "eslint-plugin-design-tokens",
     "version": "1.0.1",
-    "description": "ESLint rules that catch hardcoded colors and spacing in sx/style props and styled-components, so design tokens stay the only source of truth.",
+    "description": "ESLint rules that catch hardcoded colors, spacing, typography, shadows and radii in sx/style/css props and styled-components, so design tokens stay the only source of truth.",
     "license": "MIT",
     "sideEffects": false,
     "type": "module",
@@ -74,7 +74,15 @@
         "jsx",
         "linter",
         "lint",
-        "typescript"
+        "typescript",
+        "hardcoded-typography",
+        "hardcoded-shadows",
+        "hardcoded-radius",
+        "typography",
+        "shadows",
+        "border-radius",
+        "antd",
+        "ant-design"
     ],
     "author": "Pavel Lazarchuk",
     "repository": {

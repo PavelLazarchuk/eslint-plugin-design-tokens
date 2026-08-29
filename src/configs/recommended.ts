@@ -5,6 +5,9 @@ export const PLUGIN_NAME = 'design-tokens';
 const RULES: Linter.RulesRecord = {
     'design-tokens/no-hardcoded-colors': 'warn',
     'design-tokens/no-hardcoded-spacing': 'warn',
+    'design-tokens/no-hardcoded-typography': 'warn',
+    'design-tokens/no-hardcoded-shadows': 'warn',
+    'design-tokens/no-hardcoded-radius': 'warn',
 };
 
 /** `.eslintrc` form — referenced through `extends: ['plugin:design-tokens/recommended']`. */

@@ -58,6 +58,7 @@ interface TaggedTemplateExpression extends AstNode {
 
 const TARGET_PROPS = new Set(['sx', 'style']);
 const STYLED_FACTORY = 'styled';
+const CSS_FACTORY = 'css';
 
 function isNode(value: unknown): value is AstNode {
     return (
@@ -71,6 +72,10 @@ function isType<T extends AstNode>(value: unknown, type: string): value is T {
 
 function isStyledIdentifier(value: unknown): boolean {
     return isType<Identifier>(value, 'Identifier') && value.name === STYLED_FACTORY;
+}
+
+function isCssFactory(value: unknown): boolean {
+    return isType<Identifier>(value, 'Identifier') && value.name === CSS_FACTORY;
 }
 
 function isStyledFactory(value: unknown): boolean {
@@ -112,22 +117,52 @@ function styledObjectArgument(node: AstNode): ObjectExpression | null {
 }
 
 export function isTargetProp(node: AstNode): boolean {
-    return styledPropObject(node) !== null;
+    return styledPropObject(node) !== null || isCssPropAttribute(node);
+}
+
+function jsxAttributeExpression(
+    node: AstNode,
+    name: (attribute: string) => boolean
+): AstNode | null {
+    if (!isType<JSXAttribute>(node, 'JSXAttribute')) return null;
+    if (!isType<Identifier>(node.name, 'JSXIdentifier') || !name(node.name.name)) return null;
+    if (!isType<JSXExpressionContainer>(node.value, 'JSXExpressionContainer')) return null;
+    return node.value.expression;
 }
 
 function styledPropObject(node: AstNode): ObjectExpression | null {
-    if (!isType<JSXAttribute>(node, 'JSXAttribute')) return null;
-    if (!isType<Identifier>(node.name, 'JSXIdentifier') || !TARGET_PROPS.has(node.name.name))
-        return null;
-    if (!isType<JSXExpressionContainer>(node.value, 'JSXExpressionContainer')) return null;
-    return isType<ObjectExpression>(node.value.expression, 'ObjectExpression')
-        ? node.value.expression
-        : null;
+    const expression = jsxAttributeExpression(node, name => TARGET_PROPS.has(name));
+    if (expression === null) return null;
+    return isType<ObjectExpression>(expression, 'ObjectExpression') ? expression : null;
 }
+
+function cssPropExpression(node: AstNode): AstNode | null {
+    const expression = jsxAttributeExpression(node, name => name === CSS_FACTORY);
+    if (expression === null) return null;
+
+    if (isType<ObjectExpression>(expression, 'ObjectExpression')) return expression;
+    if (
+        isType<TaggedTemplateExpression>(expression, 'TaggedTemplateExpression') &&
+        isCssFactory(expression.tag)
+    )
+        return expression;
+    return null;
+}
+
+export function isCssPropAttribute(node: AstNode): boolean {
+    return cssPropExpression(node) !== null;
+}
+
 export function isStyledTaggedTemplate(node: AstNode): boolean {
     return (
         isType<TaggedTemplateExpression>(node, 'TaggedTemplateExpression') &&
         isStyledFactory(node.tag)
+    );
+}
+
+export function isCssTaggedTemplate(node: AstNode): boolean {
+    return (
+        isType<TaggedTemplateExpression>(node, 'TaggedTemplateExpression') && isCssFactory(node.tag)
     );
 }
 
@@ -171,11 +206,13 @@ function collectFromObject(object: ObjectExpression, out: StyleDeclaration[]): v
 }
 
 export function getPropDeclarations(node: AstNode): StyleDeclaration[] {
-    const object = styledPropObject(node);
-    if (object === null) return [];
+    const expression = styledPropObject(node) ?? cssPropExpression(node);
+
+    if (expression === null || !isType<ObjectExpression>(expression, 'ObjectExpression')) return [];
 
     const declarations: StyleDeclaration[] = [];
-    collectFromObject(object, declarations);
+    collectFromObject(expression, declarations);
+
     return declarations;
 }
 
@@ -196,7 +233,7 @@ export function getStyledTemplateDeclarations(
     node: AstNode,
     resolver: LocResolver
 ): StyleDeclaration[] {
-    if (!isStyledTaggedTemplate(node)) return [];
+    if (!isStyledTaggedTemplate(node) && !isCssTaggedTemplate(node)) return [];
 
     const template = (node as TaggedTemplateExpression).quasi;
     return parseCssDeclarations(template).map(({ property, value, range }) => ({

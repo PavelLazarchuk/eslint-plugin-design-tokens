@@ -28,7 +28,6 @@ ruleTester.run('no-hardcoded-colors', rule, {
         // Not a target prop or a target call.
         '<Box data-color="#fff" />',
         '<Box style="color: #fff" />',
-        'css`color: #fff;`',
         'notStyled.div`color: #fff;`',
         'styled(Button)',
         'makeStyles({ color: "#fff" })',
@@ -60,6 +59,18 @@ ruleTester.run('no-hardcoded-colors', rule, {
         },
         {
             code: 'styled(Button)`color: #123456;`',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: '<div css={{ color: "#fff" }} />',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: '<div css={css`color: #fff;`} />',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'css`color: #fff;`',
             errors: [{ messageId: 'hardcodedColor' }],
         },
         {
