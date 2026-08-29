@@ -12,6 +12,9 @@ ruleTester.run('no-hardcoded-spacing', rule, {
         '<Box sx={{ margin: "0" }} />',
         '<Box sx={{ padding: "var(--space-2)" }} />',
         '<Box sx={{ marginTop: "auto" }} />',
+        '<Box sx={{ padding: 8 }} />',
+        '<Box sx={{ p: 2 }} />',
+        '<Box sx={undeclaredStyles} />',
 
         // Not a spacing property by default.
         '<Box sx={{ width: "240px" }} />',
@@ -28,6 +31,11 @@ ruleTester.run('no-hardcoded-spacing', rule, {
         },
 
         // Not a target prop or a target call.
+        'let styles = { padding: "8px" }; <Box sx={styles} />;',
+        'import styles from "./styles"; <Box sx={styles} />;',
+        'const styles = makeStyles({ padding: "8px" }); <Box sx={styles} />;',
+        '<Box sx={{ ...styles }} />',
+
         '<Box data-padding="8px" />',
         'notStyled.div`padding: 8px;`',
     ],
@@ -71,6 +79,40 @@ ruleTester.run('no-hardcoded-spacing', rule, {
         },
         {
             code: 'css`padding: 8px;`',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: 'const styles = { padding: "8px" }; <Box sx={styles} />;',
+            errors: [
+                {
+                    messageId: 'hardcodedSpacing',
+                    data: { value: '8px', property: 'padding' },
+                    column: 18,
+                },
+            ],
+        },
+        {
+            code: 'const styles = { padding: "8px" }; <Box sx={styles} />; <Card style={styles} />;',
+            errors: [{ messageId: 'hardcodedSpacing', column: 18 }],
+        },
+        {
+            code: 'const outer = { gap: "4px" }; function App() { return <Box sx={outer} />; }',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: 'const styles = { margin: "8px" }; const A = styled.div(styles);',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: 'const styles = { margin: "8px" }; const A = styled.div(() => styles);',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: 'const styles = { padding: "8px" }; <div css={styles} />;',
+            errors: [{ messageId: 'hardcodedSpacing' }],
+        },
+        {
+            code: '<Card styles={{ body: { padding: "8px" } }} />',
             errors: [{ messageId: 'hardcodedSpacing' }],
         },
         {

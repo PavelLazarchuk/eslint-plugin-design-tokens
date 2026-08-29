@@ -56,7 +56,27 @@ interface TaggedTemplateExpression extends AstNode {
     quasi: AstNode;
 }
 
-const TARGET_PROPS = new Set(['sx', 'style']);
+interface VariableDefinition {
+    type: string;
+    node: AstNode;
+    parent?: AstNode | null;
+}
+
+interface ScopeVariable {
+    name: string;
+    defs: unknown[];
+}
+
+interface Scope {
+    variables: ScopeVariable[];
+    upper: Scope | null;
+}
+
+export interface ScopeProvider {
+    getScope(node: never): Scope;
+}
+
+const TARGET_PROPS = new Set(['sx', 'style', 'styles']);
 const STYLED_FACTORY = 'styled';
 const CSS_FACTORY = 'css';
 
@@ -92,32 +112,57 @@ function isStyledFactory(value: unknown): boolean {
     return false;
 }
 
-function styledObjectArgument(node: AstNode): ObjectExpression | null {
+function constantObject(variable: ScopeVariable): ObjectExpression | null {
+    if (variable.defs.length !== 1) return null;
+
+    const definition = variable.defs[0] as VariableDefinition;
+    if (definition.type !== 'Variable' || definition.parent?.kind !== 'const') return null;
+
+    const { init } = definition.node as { init?: unknown };
+    return isType<ObjectExpression>(init, 'ObjectExpression') ? init : null;
+}
+
+function resolveObject(
+    expression: AstNode | null,
+    resolver?: ScopeProvider
+): ObjectExpression | null {
+    if (expression === null) return null;
+    if (isType<ObjectExpression>(expression, 'ObjectExpression')) return expression;
+    if (!resolver || !isType<Identifier>(expression, 'Identifier')) return null;
+
+    const { name } = expression;
+    let scope: Scope | null = resolver.getScope(expression as never);
+
+    while (scope !== null) {
+        const variable = scope.variables.find(entry => entry.name === name);
+        if (variable) return constantObject(variable);
+        scope = scope.upper;
+    }
+    return null;
+}
+
+function styledObjectArgument(node: AstNode, resolver?: ScopeProvider): ObjectExpression | null {
     if (!isType<CallExpression>(node, 'CallExpression')) return null;
     if (!isStyledFactory(node.callee) || node.arguments.length !== 1) return null;
 
     const argument = node.arguments[0];
     if (!argument) return null;
-    if (isType<ObjectExpression>(argument, 'ObjectExpression')) return argument;
-
     if (argument.type !== 'ArrowFunctionExpression' && argument.type !== 'FunctionExpression')
-        return null;
+        return resolveObject(argument, resolver);
 
     const body = (argument as FunctionLike).body;
-    if (isType<ObjectExpression>(body, 'ObjectExpression')) return body;
+    if (!isType<BlockStatement>(body, 'BlockStatement')) return resolveObject(body, resolver);
 
-    if (isType<BlockStatement>(body, 'BlockStatement')) {
-        for (const statement of body.body) {
-            if (!isType<ReturnStatement>(statement, 'ReturnStatement')) continue;
-            if (isType<ObjectExpression>(statement.argument, 'ObjectExpression'))
-                return statement.argument;
-        }
+    for (const statement of body.body) {
+        if (!isType<ReturnStatement>(statement, 'ReturnStatement')) continue;
+        const returned = resolveObject(statement.argument, resolver);
+        if (returned) return returned;
     }
     return null;
 }
 
 export function isTargetProp(node: AstNode): boolean {
-    return styledPropObject(node) !== null || isCssPropAttribute(node);
+    return styledPropExpression(node) !== null || isCssPropAttribute(node);
 }
 
 function jsxAttributeExpression(
@@ -130,10 +175,8 @@ function jsxAttributeExpression(
     return node.value.expression;
 }
 
-function styledPropObject(node: AstNode): ObjectExpression | null {
-    const expression = jsxAttributeExpression(node, name => TARGET_PROPS.has(name));
-    if (expression === null) return null;
-    return isType<ObjectExpression>(expression, 'ObjectExpression') ? expression : null;
+function styledPropExpression(node: AstNode): AstNode | null {
+    return jsxAttributeExpression(node, name => TARGET_PROPS.has(name));
 }
 
 function cssPropExpression(node: AstNode): AstNode | null {
@@ -141,6 +184,7 @@ function cssPropExpression(node: AstNode): AstNode | null {
     if (expression === null) return null;
 
     if (isType<ObjectExpression>(expression, 'ObjectExpression')) return expression;
+    if (isType<Identifier>(expression, 'Identifier')) return expression;
     if (
         isType<TaggedTemplateExpression>(expression, 'TaggedTemplateExpression') &&
         isCssFactory(expression.tag)
@@ -193,31 +237,34 @@ function collectFromObject(object: ObjectExpression, out: StyleDeclaration[]): v
 
         const name = propertyName(property.key, property.computed);
         if (name === null || !property.loc) continue;
-        if (!isType<Literal>(property.value, 'Literal') || typeof property.value.value !== 'string')
-            continue;
+        if (!isType<Literal>(property.value, 'Literal')) continue;
+
+        const literal = property.value.value;
+        if (typeof literal !== 'string' && typeof literal !== 'number') continue;
 
         out.push({
             property: normalizeProperty(name),
-            value: property.value.value.trim(),
+            value: String(literal).trim(),
             node: property,
             loc: property.loc,
         });
     }
 }
 
-export function getPropDeclarations(node: AstNode): StyleDeclaration[] {
-    const expression = styledPropObject(node) ?? cssPropExpression(node);
-
-    if (expression === null || !isType<ObjectExpression>(expression, 'ObjectExpression')) return [];
+export function getPropDeclarations(node: AstNode, resolver?: ScopeProvider): StyleDeclaration[] {
+    const object = resolveObject(styledPropExpression(node) ?? cssPropExpression(node), resolver);
+    if (object === null) return [];
 
     const declarations: StyleDeclaration[] = [];
-    collectFromObject(expression, declarations);
-
+    collectFromObject(object, declarations);
     return declarations;
 }
 
-export function getStyledObjectDeclarations(node: AstNode): StyleDeclaration[] {
-    const object = styledObjectArgument(node);
+export function getStyledObjectDeclarations(
+    node: AstNode,
+    resolver?: ScopeProvider
+): StyleDeclaration[] {
+    const object = styledObjectArgument(node, resolver);
     if (object === null) return [];
 
     const declarations: StyleDeclaration[] = [];

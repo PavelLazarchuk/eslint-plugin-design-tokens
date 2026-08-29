@@ -1,12 +1,9 @@
-import { createStyleRule } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl } from '../utils/createStyleRule';
 import { DEFAULT_RADIUS_PROPERTIES, isRadiusValue } from '../utils/radiusMatchers';
-
-const DOCS_URL =
-    'https://github.com/PavelLazarchuk/eslint-plugin-design-tokens#no-hardcoded-radius';
 
 export default createStyleRule({
     description: 'Disallow hardcoded border-radius values in style objects and styled-components',
-    url: DOCS_URL,
+    url: docsUrl('no-hardcoded-radius'),
     schema: [
         {
             type: 'object',

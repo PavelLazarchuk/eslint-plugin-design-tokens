@@ -1,9 +1,9 @@
 import { createStyleRule, docsUrl } from '../utils/createStyleRule';
-import { DEFAULT_SHADOW_PROPERTIES, isShadowValue } from '../utils/shadowMatchers';
+import { DEFAULT_TRANSITION_PROPERTIES, isTransitionValue } from '../utils/transitionMatchers';
 
 export default createStyleRule({
-    description: 'Disallow hardcoded shadow values in style objects and styled-components',
-    url: docsUrl('no-hardcoded-shadows'),
+    description: 'Disallow hardcoded transition values in style objects and styled-components',
+    url: docsUrl('no-hardcoded-transitions'),
     schema: [
         {
             type: 'object',
@@ -15,24 +15,24 @@ export default createStyleRule({
         },
     ],
     messages: {
-        hardcodedShadow:
-            'Hardcoded shadow value "{{value}}" for "{{property}}" — use a theme token instead.',
+        hardcodedTransition:
+            'Hardcoded transition value "{{value}}" for "{{property}}" — use a theme token instead.',
     },
     createChecker(options) {
         const allowlist = new Set(
             ((options.allowlist as string[] | undefined) ?? []).map(entry => entry.toLowerCase())
         );
         const properties = new Set(
-            ((options.properties as string[] | undefined) ?? DEFAULT_SHADOW_PROPERTIES).map(entry =>
-                entry.toLowerCase()
+            ((options.properties as string[] | undefined) ?? DEFAULT_TRANSITION_PROPERTIES).map(
+                entry => entry.toLowerCase()
             )
         );
 
         return declaration => {
             const { property, value } = declaration;
             if (!properties.has(property)) return null;
-            if (allowlist.has(value.toLowerCase()) || !isShadowValue(value)) return null;
-            return { messageId: 'hardcodedShadow', data: { value, property } };
+            if (allowlist.has(value.toLowerCase()) || !isTransitionValue(value)) return null;
+            return { messageId: 'hardcodedTransition', data: { value, property } };
         };
     },
 });

@@ -11,6 +11,7 @@ ruleTester.run('no-hardcoded-radius', rule, {
         // CSS variables and keywords.
         '<Box sx={{ borderRadius: "var(--radius-m)" }} />',
         '<Box sx={{ borderRadius: "inherit" }} />',
+        '<Box sx={{ borderRadius: 2 }} />',
         // One tokenized part is enough to leave the shorthand alone.
         '<Box sx={{ borderRadius: "4px var(--radius-m)" }} />',
 

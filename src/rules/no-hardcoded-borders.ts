@@ -1,9 +1,9 @@
 import { createStyleRule, docsUrl } from '../utils/createStyleRule';
-import { DEFAULT_SHADOW_PROPERTIES, isShadowValue } from '../utils/shadowMatchers';
+import { DEFAULT_BORDER_PROPERTIES, isBorderValue } from '../utils/borderMatchers';
 
 export default createStyleRule({
-    description: 'Disallow hardcoded shadow values in style objects and styled-components',
-    url: docsUrl('no-hardcoded-shadows'),
+    description: 'Disallow hardcoded border values in style objects and styled-components',
+    url: docsUrl('no-hardcoded-borders'),
     schema: [
         {
             type: 'object',
@@ -15,15 +15,15 @@ export default createStyleRule({
         },
     ],
     messages: {
-        hardcodedShadow:
-            'Hardcoded shadow value "{{value}}" for "{{property}}" — use a theme token instead.',
+        hardcodedBorder:
+            'Hardcoded border value "{{value}}" for "{{property}}" — use a theme token instead.',
     },
     createChecker(options) {
         const allowlist = new Set(
             ((options.allowlist as string[] | undefined) ?? []).map(entry => entry.toLowerCase())
         );
         const properties = new Set(
-            ((options.properties as string[] | undefined) ?? DEFAULT_SHADOW_PROPERTIES).map(entry =>
+            ((options.properties as string[] | undefined) ?? DEFAULT_BORDER_PROPERTIES).map(entry =>
                 entry.toLowerCase()
             )
         );
@@ -31,8 +31,8 @@ export default createStyleRule({
         return declaration => {
             const { property, value } = declaration;
             if (!properties.has(property)) return null;
-            if (allowlist.has(value.toLowerCase()) || !isShadowValue(value)) return null;
-            return { messageId: 'hardcodedShadow', data: { value, property } };
+            if (allowlist.has(value.toLowerCase()) || !isBorderValue(value)) return null;
+            return { messageId: 'hardcodedBorder', data: { value, property } };
         };
     },
 });

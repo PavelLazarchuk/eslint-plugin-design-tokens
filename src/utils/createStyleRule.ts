@@ -21,6 +21,10 @@ export interface StyleRuleConfig {
     ): (declaration: StyleDeclaration) => Problem | null;
 }
 
+export function docsUrl(name: string): string {
+    return `https://github.com/PavelLazarchuk/eslint-plugin-design-tokens/blob/main/docs/rules/${name}.md`;
+}
+
 export function createStyleRule(config: StyleRuleConfig): Rule.RuleModule {
     return {
         meta: {
@@ -35,11 +39,17 @@ export function createStyleRule(config: StyleRuleConfig): Rule.RuleModule {
             );
 
             const { sourceCode } = context;
+            const reported = new Set<string>();
 
             const visit = (extract: (node: AstNode) => StyleDeclaration[]) => (node: unknown) => {
                 for (const declaration of extract(node as AstNode)) {
+                    const { start, end } = declaration.loc;
+                    const key = `${declaration.property}:${start.line}:${start.column}:${end.line}:${end.column}`;
+                    if (reported.has(key)) continue;
+
                     const problem = check(declaration);
                     if (problem) {
+                        reported.add(key);
                         context.report({
                             loc: declaration.loc,
                             messageId: problem.messageId,
@@ -50,11 +60,11 @@ export function createStyleRule(config: StyleRuleConfig): Rule.RuleModule {
             };
 
             return {
-                JSXAttribute: visit(getPropDeclarations),
+                JSXAttribute: visit(node => getPropDeclarations(node, sourceCode)),
                 TaggedTemplateExpression: visit(node =>
                     getStyledTemplateDeclarations(node, sourceCode)
                 ),
-                CallExpression: visit(getStyledObjectDeclarations),
+                CallExpression: visit(node => getStyledObjectDeclarations(node, sourceCode)),
             } as Rule.RuleListener;
         },
     };

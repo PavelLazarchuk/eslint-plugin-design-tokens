@@ -8,6 +8,9 @@ const RULES: Linter.RulesRecord = {
     'design-tokens/no-hardcoded-typography': 'warn',
     'design-tokens/no-hardcoded-shadows': 'warn',
     'design-tokens/no-hardcoded-radius': 'warn',
+    'design-tokens/no-hardcoded-borders': 'warn',
+    'design-tokens/no-hardcoded-transitions': 'warn',
+    'design-tokens/no-hardcoded-z-index': 'warn',
 };
 
 /** `.eslintrc` form — referenced through `extends: ['plugin:design-tokens/recommended']`. */

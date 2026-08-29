@@ -1,4 +1,4 @@
-import { createStyleRule } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl } from '../utils/createStyleRule';
 import {
     DEFAULT_TYPOGRAPHY_PROPERTIES,
     FONT_FAMILY_PROPERTY,
@@ -6,12 +6,9 @@ import {
     isTypographyValue,
 } from '../utils/typographyMatchers';
 
-const DOCS_URL =
-    'https://github.com/PavelLazarchuk/eslint-plugin-design-tokens#no-hardcoded-typography';
-
 export default createStyleRule({
     description: 'Disallow hardcoded typography values in style objects and styled-components',
-    url: DOCS_URL,
+    url: docsUrl('no-hardcoded-typography'),
     schema: [
         {
             type: 'object',

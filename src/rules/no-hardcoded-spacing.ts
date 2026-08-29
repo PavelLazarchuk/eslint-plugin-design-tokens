@@ -1,12 +1,9 @@
-import { createStyleRule } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl } from '../utils/createStyleRule';
 import { DEFAULT_SPACING_PROPERTIES, isSpacingValue } from '../utils/spacingMatchers';
-
-const DOCS_URL =
-    'https://github.com/PavelLazarchuk/eslint-plugin-design-tokens#no-hardcoded-spacing';
 
 export default createStyleRule({
     description: 'Disallow hardcoded spacing values in style objects and styled-components',
-    url: DOCS_URL,
+    url: docsUrl('no-hardcoded-spacing'),
     schema: [
         {
             type: 'object',

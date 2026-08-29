@@ -10,6 +10,9 @@ describe('plugin', () => {
             'no-hardcoded-typography',
             'no-hardcoded-shadows',
             'no-hardcoded-radius',
+            'no-hardcoded-borders',
+            'no-hardcoded-transitions',
+            'no-hardcoded-z-index',
         ]);
     });
 
@@ -20,7 +23,7 @@ describe('plugin', () => {
 
     it('reports through the flat recommended config', () => {
         const messages = new Linter().verify(
-            'styled.div`color: #fff; padding: 8px; font-size: 14px; box-shadow: 0 1px 2px #000; border-radius: 4px;`',
+            'styled.div`color: #fff; padding: 8px; font-size: 14px; box-shadow: 0 1px 2px #000; border-radius: 4px; border: 1px solid #fff; transition: all 0.3s ease; z-index: 1300;`',
             [
                 ...(plugin.configs!['flat/recommended'] as Linter.Config[]),
                 { languageOptions: { ecmaVersion: 2022, sourceType: 'module' } },
@@ -34,6 +37,9 @@ describe('plugin', () => {
             'design-tokens/no-hardcoded-typography',
             'design-tokens/no-hardcoded-shadows',
             'design-tokens/no-hardcoded-radius',
+            'design-tokens/no-hardcoded-borders',
+            'design-tokens/no-hardcoded-transitions',
+            'design-tokens/no-hardcoded-z-index',
         ]);
         expect(messages.every(message => message.severity === 1)).toBe(true);
     });

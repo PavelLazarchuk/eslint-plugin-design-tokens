@@ -43,7 +43,8 @@ describe('isTargetProp', () => {
     it.each([
         ['<Box sx={{ color: "red" }} />', true],
         ['<Box style={{ color: "red" }} />', true],
-        ['<Box sx={styles} />', false],
+        ['<Box sx={styles} />', true],
+        ['<Box styles={{ body: { color: "red" } }} />', true],
         ['<Box sx="red" />', false],
         ['<Box className={{ color: "red" }} />', false],
         ['<Box {...rest} />', false],
@@ -82,7 +83,7 @@ describe('isCssPropAttribute', () => {
     it.each([
         ['<Box css={{ color: "red" }} />', true],
         ['<Box css={css`color: red;`} />', true],
-        ['<Box css={styles} />', false],
+        ['<Box css={styles} />', true],
         ['<Box css="color: red" />', false],
         ['<Box css={other`color: red;`} />', false],
         ['<Box sx={{ color: "red" }} />', false],
@@ -154,14 +155,34 @@ describe('declaration extraction', () => {
         expect(pairs(declarations)).toEqual([['color', 'red']]);
     });
 
-    it('ignores spreads, computed keys and non-string values', () => {
+    it('ignores spreads, computed keys and non-literal values', () => {
         const declarations = getPropDeclarations(
             find(
-                '<Box sx={{ ...base, [key]: "red", color: token, padding: 8, gap: "4px" }} />',
+                '<Box sx={{ ...base, [key]: "red", color: token, enabled: true, gap: "4px" }} />',
                 'JSXAttribute'
             )
         );
 
         expect(pairs(declarations)).toEqual([['gap', '4px']]);
+    });
+
+    it('reads numeric literals', () => {
+        const declarations = getPropDeclarations(
+            find('<Box sx={{ zIndex: 1300, padding: 8, lineHeight: 1.5 }} />', 'JSXAttribute')
+        );
+
+        expect(pairs(declarations)).toEqual([
+            ['z-index', '1300'],
+            ['padding', '8'],
+            ['line-height', '1.5'],
+        ]);
+    });
+
+    it('walks the slot objects of an antd styles prop', () => {
+        const declarations = getPropDeclarations(
+            find('<Card styles={{ body: { padding: "8px" } }} />', 'JSXAttribute')
+        );
+
+        expect(pairs(declarations)).toEqual([['padding', '8px']]);
     });
 });

@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/eslint-plugin-design-tokens.svg)](https://www.npmjs.com/package/eslint-plugin-design-tokens)
 [![npm downloads](https://img.shields.io/npm/dm/eslint-plugin-design-tokens.svg)](https://www.npmjs.com/package/eslint-plugin-design-tokens)
 
-A design system only holds if nobody reaches past it. This plugin flags the values that leak first — **colors**, **spacing**, **typography**, **shadows** and **radii** — wherever they get written inline: `sx`, `style`, the emotion `css` prop, and `styled` components.
+A design system only holds if nobody reaches past it. This plugin flags the values that leak first — **colors**, **spacing**, **typography**, **shadows**, **radii**, **borders**, **transitions** and **z-index** — wherever they get written inline: `sx`, `style`, `styles`, the emotion `css` prop, and `styled` components.
 
 ```sh
 npm install --save-dev eslint-plugin-design-tokens
@@ -68,6 +68,7 @@ The recommended config turns every rule on as `warn`.
 | Source                     | Example                                              |
 | -------------------------- | ---------------------------------------------------- |
 | `sx` and `style` JSX props | `<Box sx={{ color: '#fff' }} />`                     |
+| `styles` JSX prop (antd)   | `<Card styles={{ body: { color: '#fff' } }} />`      |
 | `css` JSX prop, object     | `<div css={{ color: '#fff' }} />`                    |
 | `css` JSX prop, template   | ``<div css={css`color: #fff;`} />``                  |
 | `css` tagged templates     | ``const style = css`color: #fff;` ``                 |
@@ -87,107 +88,44 @@ Both `styled.<tag>` and `styled(Component)` forms are recognised, which covers s
 
 Nested selectors and media queries are walked too, so `'&:hover': { color: '#fff' }` is not a hiding place.
 
-Nothing is reported unless the value is a plain string the linter can read in full: `theme.palette.primary.main`, a `${...}` interpolation, a numeric literal and anything containing `var(--...)` all pass untouched.
+A style object pulled out into a `const` in the same file is followed one hop, so moving the hardcode up a line does not hide it:
+
+```jsx
+const styles = { padding: '8px' }; // reported here
+<Box sx={styles} />;
+```
+
+Only `const` is followed, and only within the file — a `let`, an import or a call result is left alone.
+
+Nothing is reported unless the value is a literal the linter can read in full — a string or a number: `theme.palette.primary.main`, a `${...}` interpolation and anything containing `var(--...)` all pass untouched.
+
+Numbers are read because that is how some values are written in a style object, and each rule decides what to do with them: `zIndex: 1300` is reported and `fontWeight: 700` is reported, while MUI's unitless multipliers `padding: 8` and `borderRadius: 2` are not, since a length without a unit is not a hardcoded length.
 
 ## Rules
 
-### `no-hardcoded-colors`
+<!-- begin auto-generated rules list -->
 
-Reports a string whose whole value is a color: hex (`#fff`, `#ff0000ff`), `rgb()`/`rgba()`, `hsl()`/`hsla()`, or a CSS named color (`red`, `rebeccapurple`).
+⚠️ [Configurations](https://github.com/PavelLazarchuk/eslint-plugin-design-tokens#setup) set to warn in.\
+✅ Set in the `recommended` [configuration](https://github.com/PavelLazarchuk/eslint-plugin-design-tokens#setup).
 
-| Option      | Type       | Default                                              |
-| ----------- | ---------- | ---------------------------------------------------- |
-| `allowlist` | `string[]` | `['transparent', 'inherit', 'currentColor', 'none']` |
+| Name                                                               | Description                                                                    | ⚠️  |
+| :----------------------------------------------------------------- | :----------------------------------------------------------------------------- | :-- |
+| [no-hardcoded-borders](docs/rules/no-hardcoded-borders.md)         | Disallow hardcoded border values in style objects and styled-components        | ✅  |
+| [no-hardcoded-colors](docs/rules/no-hardcoded-colors.md)           | Disallow hardcoded color values in style objects and styled-components         | ✅  |
+| [no-hardcoded-radius](docs/rules/no-hardcoded-radius.md)           | Disallow hardcoded border-radius values in style objects and styled-components | ✅  |
+| [no-hardcoded-shadows](docs/rules/no-hardcoded-shadows.md)         | Disallow hardcoded shadow values in style objects and styled-components        | ✅  |
+| [no-hardcoded-spacing](docs/rules/no-hardcoded-spacing.md)         | Disallow hardcoded spacing values in style objects and styled-components       | ✅  |
+| [no-hardcoded-transitions](docs/rules/no-hardcoded-transitions.md) | Disallow hardcoded transition values in style objects and styled-components    | ✅  |
+| [no-hardcoded-typography](docs/rules/no-hardcoded-typography.md)   | Disallow hardcoded typography values in style objects and styled-components    | ✅  |
+| [no-hardcoded-z-index](docs/rules/no-hardcoded-z-index.md)         | Disallow hardcoded z-index values in style objects and styled-components       | ✅  |
 
-`allowlist` **replaces** the default list rather than extending it, so include the defaults you still want:
-
-```js
-{
-    'design-tokens/no-hardcoded-colors': [
-        'error',
-        { allowlist: ['transparent', 'inherit', 'currentColor', 'none', '#0000'] },
-    ],
-}
-```
-
-### `no-hardcoded-spacing`
-
-Reports a string holding a single length in `px`, `rem` or `em` on a spacing property.
-
-| Option       | Type       | Default                                                                                                                                                |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `properties` | `string[]` | `margin`, `margin-top/right/bottom/left`, `padding`, `padding-top/right/bottom/left`, `gap`, `row-gap`, `column-gap`, `top`, `right`, `bottom`, `left` |
-| `allowlist`  | `string[]` | `[]`                                                                                                                                                   |
-
-`width` and `height` are deliberately left out — fixed sizes are legitimate far more often than fixed margins are. Add them when your system says otherwise:
-
-```js
-{
-    'design-tokens/no-hardcoded-spacing': [
-        'warn',
-        { properties: ['margin', 'padding', 'gap', 'width', 'height'], allowlist: ['1px'] },
-    ],
-}
-```
-
-Property names are matched in kebab-case, and camelCase keys are normalised before the check — `marginTop` and `'margin-top'` are the same property.
-
-Unitless values are never reported, so `margin: '0'` and MUI's `sx={{ p: 2 }}` spacing multipliers pass.
-
-### `no-hardcoded-typography`
-
-Reports a literal `font-size` (`px`, `rem`, `em`, `pt`, `%`), a numeric `font-weight`, or a `line-height` given as a length or a bare number.
-
-| Option            | Type       | Default                                                  |
-| ----------------- | ---------- | -------------------------------------------------------- |
-| `properties`      | `string[]` | `font-size`, `font-weight`, `line-height`, `font-family` |
-| `allowlist`       | `string[]` | `[]`                                                     |
-| `checkFontFamily` | `boolean`  | `false`                                                  |
-
-`font-family` is off by default. A font stack is a name rather than a shape, so there is no way to tell a deliberate `'Inter, sans-serif'` from a leak — turning it on catches more and misfires more:
-
-```js
-{
-    'design-tokens/no-hardcoded-typography': ['warn', { checkFontFamily: true }],
-}
-```
-
-With it on, only `var(--...)` and the CSS-wide keywords (`inherit`, `initial`, `unset`, `revert`) pass.
-
-### `no-hardcoded-shadows`
-
-Reports a `box-shadow` or `text-shadow` whose value reads as a literal shadow: two or more lengths, or one length next to a literal color. `inset` is ignored while matching.
-
-| Option       | Type       | Default                     |
-| ------------ | ---------- | --------------------------- |
-| `properties` | `string[]` | `box-shadow`, `text-shadow` |
-| `allowlist`  | `string[]` | `[]`                        |
-
-The whole declaration is matched at once, so a multi-layer shadow is **one** report, not one per layer:
-
-```jsx
-<Card sx={{ boxShadow: '0 1px 2px #000, 0 2px 4px #000' }} />
-//                      ^ a single "hardcoded shadow" report
-```
-
-A layer holding anything the matcher cannot read — `var(--shadow-color)`, `color-mix(...)`, an unfamiliar unit — is left alone, on the assumption that a value it cannot parse in full is a value it has no business rewriting.
-
-### `no-hardcoded-radius`
-
-Reports a literal `border-radius` (and its per-corner and logical variants) in `px`, `rem`, `em` or `%`.
-
-| Option       | Type       | Default                                                                                         |
-| ------------ | ---------- | ----------------------------------------------------------------------------------------------- |
-| `properties` | `string[]` | `border-radius`, the four `border-*-*-radius` corners, and the four logical `border-*-*-radius` |
-| `allowlist`  | `string[]` | `[]`                                                                                            |
-
-Shorthands count as one hardcode: `border-radius: '4px 8px'` and `border-radius: '50% / 10%'` report once. A shorthand with one tokenized part — `'4px var(--radius-m)'` — is left alone.
+<!-- end auto-generated rules list -->
 
 ## Scope
 
 There is no autofix. Turning `'#ff0000'` into the right token needs a token map and a human decision about which token is right; a plugin guessing at that would be worse than the hardcode.
 
-Values are matched whole. `border: '1px solid #fff'` is not reported, because the rule cannot tell which part of a shorthand your system owns. `box-shadow` and `border-radius` are the exceptions — their shorthands have a shape the matchers can read end to end, and each reports once for the whole declaration.
+Values are matched whole, and a shorthand is only read when its shape is unambiguous — `border`, `box-shadow`, `border-radius` and `transition` are, so each reports once for the whole declaration. Anything else (`background: #fff url(...)`, `font: bold 14px/1.5 Inter`) is left alone, because the rule cannot tell which part of it your system owns.
 
 ## License
 

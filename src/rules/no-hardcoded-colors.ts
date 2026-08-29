@@ -1,12 +1,9 @@
-import { createStyleRule } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl } from '../utils/createStyleRule';
 import { DEFAULT_COLOR_ALLOWLIST, isColorValue } from '../utils/colorMatchers';
-
-const DOCS_URL =
-    'https://github.com/PavelLazarchuk/eslint-plugin-design-tokens#no-hardcoded-colors';
 
 export default createStyleRule({
     description: 'Disallow hardcoded color values in style objects and styled-components',
-    url: DOCS_URL,
+    url: docsUrl('no-hardcoded-colors'),
     schema: [
         {
             type: 'object',

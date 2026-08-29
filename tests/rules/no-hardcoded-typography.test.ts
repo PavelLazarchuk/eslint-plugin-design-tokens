@@ -61,6 +61,10 @@ ruleTester.run('no-hardcoded-typography', rule, {
                     messageId: 'hardcodedTypography',
                     data: { value: '0.875rem', property: 'font-size' },
                 },
+                {
+                    messageId: 'hardcodedTypography',
+                    data: { value: '700', property: 'font-weight' },
+                },
             ],
         },
         {

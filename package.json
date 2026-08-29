@@ -1,7 +1,7 @@
 {
     "name": "eslint-plugin-design-tokens",
     "version": "1.1.0",
-    "description": "ESLint rules that catch hardcoded colors, spacing, typography, shadows and radii in sx/style/css props and styled-components, so design tokens stay the only source of truth.",
+    "description": "ESLint rules that catch hardcoded colors, spacing, typography, shadows, radii, borders, transitions and z-index in sx/style/css props and styled-components, so design tokens stay the only source of truth.",
     "license": "MIT",
     "sideEffects": false,
     "type": "module",
@@ -10,6 +10,7 @@
     },
     "files": [
         "dist",
+        "docs",
         "README.md",
         "LICENSE"
     ],
@@ -40,6 +41,8 @@
         "lint": "eslint .",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
+        "docs": "npm run build && eslint-doc-generator",
+        "docs:check": "eslint-doc-generator --check",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
@@ -82,7 +85,13 @@
         "shadows",
         "border-radius",
         "antd",
-        "ant-design"
+        "ant-design",
+        "hardcoded-borders",
+        "hardcoded-transitions",
+        "hardcoded-z-index",
+        "borders",
+        "transitions",
+        "z-index"
     ],
     "author": "Pavel Lazarchuk",
     "repository": {
@@ -102,6 +111,7 @@
         "@vitest/coverage-v8": "^4.1.11",
         "eslint": "^10.9.1",
         "eslint-config-prettier": "^10.1.8",
+        "eslint-doc-generator": "^3.7.1",
         "espree": "^10.4.0",
         "husky": "^9.1.7",
         "lint-staged": "^17.4.1",
