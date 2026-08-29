@@ -1,0 +1,9 @@
+[
+    {
+        "name": "eslint-plugin-design-tokens",
+        "path": "dist/index.js",
+        "limit": "12 kB",
+        "gzip": true,
+        "ignore": ["eslint"]
+    }
+]
