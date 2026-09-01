@@ -24,11 +24,15 @@ styled.p`
 
 ## Options
 
-| Option            | Type       | Default                                                  |
-| ----------------- | ---------- | -------------------------------------------------------- |
-| `properties`      | `string[]` | `font-size`, `font-weight`, `line-height`, `font-family` |
-| `allowlist`       | `string[]` | `[]`                                                     |
-| `checkFontFamily` | `boolean`  | `false`                                                  |
+| Option                  | Type       | Default                                                  |
+| ----------------------- | ---------- | -------------------------------------------------------- |
+| `properties`            | `string[]` | `font-size`, `font-weight`, `line-height`, `font-family` |
+| `allowlist`             | `string[]` | `[]`                                                     |
+| `checkFontFamily`       | `boolean`  | `false`                                                  |
+| `allowlistPatterns`     | `string[]` | `[]`                                                     |
+| `ignorePropertyPattern` | `string`   | —                                                        |
+
+`allowlistPatterns` and `ignorePropertyPattern` are read by every rule in this plugin: the first excuses a value that any of the patterns matches, the second skips a declaration whose property matches it. Both are regular expressions written as strings and compiled with the `u` flag, and a property is matched by its CSS spelling — `backgroundColor` in a style object is tested as `background-color`.
 
 `font-family` is off by default. A font stack is a name rather than a shape, so there is no way to tell a deliberate `'Inter, sans-serif'` from a leak — turning it on catches more and misfires more:
 

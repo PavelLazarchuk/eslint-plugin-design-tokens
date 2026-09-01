@@ -1,26 +1,17 @@
-import { createStyleRule, docsUrl } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl, stringArray } from '../utils/createStyleRule';
 import { DEFAULT_COLOR_ALLOWLIST, isColorValue } from '../utils/colorMatchers';
 
 export default createStyleRule({
     description: 'Disallow hardcoded color values in style objects and styled-components',
     url: docsUrl('no-hardcoded-colors'),
-    schema: [
-        {
-            type: 'object',
-            properties: {
-                allowlist: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-            },
-            additionalProperties: false,
-        },
-    ],
+    schemaProperties: { allowlist: stringArray },
+    defaultOptions: { allowlist: DEFAULT_COLOR_ALLOWLIST },
     messages: {
         hardcodedColor: 'Hardcoded color value "{{value}}" — use a theme token instead.',
     },
     createChecker(options) {
         const allowlist = new Set(
-            ((options.allowlist as string[] | undefined) ?? DEFAULT_COLOR_ALLOWLIST).map(entry =>
-                entry.toLowerCase()
-            )
+            (options.allowlist as string[]).map(entry => entry.toLowerCase())
         );
 
         return declaration => {

@@ -24,10 +24,14 @@ styled.div`
 
 ## Options
 
-| Option       | Type                   | Default      |
-| ------------ | ---------------------- | ------------ |
-| `allowlist`  | `(string \| number)[]` | `[0, 1, -1]` |
-| `properties` | `string[]`             | `z-index`    |
+| Option                  | Type                   | Default      |
+| ----------------------- | ---------------------- | ------------ |
+| `allowlist`             | `(string \| number)[]` | `[0, 1, -1]` |
+| `properties`            | `string[]`             | `z-index`    |
+| `allowlistPatterns`     | `string[]`             | `[]`         |
+| `ignorePropertyPattern` | `string`               | —            |
+
+`allowlistPatterns` and `ignorePropertyPattern` are read by every rule in this plugin: the first excuses a value that any of the patterns matches, the second skips a declaration whose property matches it. Both are regular expressions written as strings and compiled with the `u` flag, and a property is matched by its CSS spelling — `backgroundColor` in a style object is tested as `background-color`.
 
 `0`, `1` and `-1` are allowed by default: those are how a local stacking context is nudged, not a place in the global layer scale. Numbers and strings are interchangeable in the allowlist, and `allowlist: []` reports every literal:
 

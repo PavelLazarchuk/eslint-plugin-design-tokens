@@ -24,10 +24,14 @@ styled.div`
 
 ## Options
 
-| Option       | Type       | Default                                                                                                                                                                  |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `properties` | `string[]` | `transition`, `transition-duration`, `transition-delay`, `transition-timing-function`, `animation`, `animation-duration`, `animation-delay`, `animation-timing-function` |
-| `allowlist`  | `string[]` | `[]`                                                                                                                                                                     |
+| Option                  | Type       | Default                                                                                                                                                                  |
+| ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `properties`            | `string[]` | `transition`, `transition-duration`, `transition-delay`, `transition-timing-function`, `animation`, `animation-duration`, `animation-delay`, `animation-timing-function` |
+| `allowlist`             | `string[]` | `[]`                                                                                                                                                                     |
+| `allowlistPatterns`     | `string[]` | `[]`                                                                                                                                                                     |
+| `ignorePropertyPattern` | `string`   | —                                                                                                                                                                        |
+
+`allowlistPatterns` and `ignorePropertyPattern` are read by every rule in this plugin: the first excuses a value that any of the patterns matches, the second skips a declaration whose property matches it. Both are regular expressions written as strings and compiled with the `u` flag, and a property is matched by its CSS spelling — `backgroundColor` in a style object is tested as `background-color`.
 
 ## Notes
 

@@ -1,31 +1,21 @@
-import { createStyleRule, docsUrl } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl, stringArray } from '../utils/createStyleRule';
 import { DEFAULT_SHADOW_PROPERTIES, isShadowValue } from '../utils/shadowMatchers';
 
 export default createStyleRule({
     description: 'Disallow hardcoded shadow values in style objects and styled-components',
     url: docsUrl('no-hardcoded-shadows'),
-    schema: [
-        {
-            type: 'object',
-            properties: {
-                allowlist: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-                properties: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-            },
-            additionalProperties: false,
-        },
-    ],
+    schemaProperties: { allowlist: stringArray, properties: stringArray },
+    defaultOptions: { allowlist: [], properties: DEFAULT_SHADOW_PROPERTIES },
     messages: {
         hardcodedShadow:
             'Hardcoded shadow value "{{value}}" for "{{property}}" — use a theme token instead.',
     },
     createChecker(options) {
         const allowlist = new Set(
-            ((options.allowlist as string[] | undefined) ?? []).map(entry => entry.toLowerCase())
+            (options.allowlist as string[]).map(entry => entry.toLowerCase())
         );
         const properties = new Set(
-            ((options.properties as string[] | undefined) ?? DEFAULT_SHADOW_PROPERTIES).map(entry =>
-                entry.toLowerCase()
-            )
+            (options.properties as string[]).map(entry => entry.toLowerCase())
         );
 
         return declaration => {

@@ -1,31 +1,21 @@
-import { createStyleRule, docsUrl } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl, stringArray } from '../utils/createStyleRule';
 import { DEFAULT_TRANSITION_PROPERTIES, isTransitionValue } from '../utils/transitionMatchers';
 
 export default createStyleRule({
     description: 'Disallow hardcoded transition values in style objects and styled-components',
     url: docsUrl('no-hardcoded-transitions'),
-    schema: [
-        {
-            type: 'object',
-            properties: {
-                allowlist: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-                properties: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-            },
-            additionalProperties: false,
-        },
-    ],
+    schemaProperties: { allowlist: stringArray, properties: stringArray },
+    defaultOptions: { allowlist: [], properties: DEFAULT_TRANSITION_PROPERTIES },
     messages: {
         hardcodedTransition:
             'Hardcoded transition value "{{value}}" for "{{property}}" — use a theme token instead.',
     },
     createChecker(options) {
         const allowlist = new Set(
-            ((options.allowlist as string[] | undefined) ?? []).map(entry => entry.toLowerCase())
+            (options.allowlist as string[]).map(entry => entry.toLowerCase())
         );
         const properties = new Set(
-            ((options.properties as string[] | undefined) ?? DEFAULT_TRANSITION_PROPERTIES).map(
-                entry => entry.toLowerCase()
-            )
+            (options.properties as string[]).map(entry => entry.toLowerCase())
         );
 
         return declaration => {

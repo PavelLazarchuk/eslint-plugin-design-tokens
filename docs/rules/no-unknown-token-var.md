@@ -26,10 +26,14 @@ styled.div`
 
 ## Options
 
-| Option      | Type       | Default |
-| ----------- | ---------- | ------- |
-| `prefixes`  | `string[]` | `[]`    |
-| `allowlist` | `string[]` | `[]`    |
+| Option                  | Type       | Default |
+| ----------------------- | ---------- | ------- |
+| `prefixes`              | `string[]` | `[]`    |
+| `allowlist`             | `string[]` | `[]`    |
+| `allowlistPatterns`     | `string[]` | `[]`    |
+| `ignorePropertyPattern` | `string`   | —       |
+
+`allowlistPatterns` and `ignorePropertyPattern` are read by every rule in this plugin. Here the patterns name variables rather than whole values, so `['^--ds-']` says the same thing as `prefixes: ['--ds-']`, and each variable in a value is excused on its own.
 
 `prefixes` is the namespace your tokens are generated under; `allowlist` names the individual variables that live outside it. The leading `--` is optional in both, and matching is case-insensitive:
 

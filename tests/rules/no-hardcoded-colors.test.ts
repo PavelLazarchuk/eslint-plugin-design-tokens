@@ -25,6 +25,25 @@ ruleTester.run('no-hardcoded-colors', rule, {
         '<Box sx={{ display: "flex" }} />',
         'styled.div`padding: 8px;`',
 
+        // Values matched by a pattern instead of by name.
+        {
+            code: '<Box sx={{ color: "#ff0000" }} />',
+            options: [{ allowlistPatterns: ['^#f{2}0{4}$'] }],
+        },
+        {
+            code: 'styled.div`color: rgb(0 0 0 / 50%);`',
+            options: [{ allowlistPatterns: ['^rgb\\('] }],
+        },
+        {
+            // Properties the design system does not own.
+            code: '<Box sx={{ fill: "#fff", stroke: "#000" }} />',
+            options: [{ ignorePropertyPattern: '^(fill|stroke)$' }],
+        },
+        {
+            code: 'styled.div`--legacy-fg: #fff;`',
+            options: [{ ignorePropertyPattern: '^--' }],
+        },
+
         // Not a target prop or a target call.
         '<Box data-color="#fff" />',
         '<Box style="color: #fff" />',

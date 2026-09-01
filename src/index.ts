@@ -8,7 +8,7 @@ import noHardcodedBorders from './rules/no-hardcoded-borders';
 import noHardcodedTransitions from './rules/no-hardcoded-transitions';
 import noHardcodedZIndex from './rules/no-hardcoded-z-index';
 import noUnknownTokenVar from './rules/no-unknown-token-var';
-import { flatRecommended, legacyRecommended } from './configs/recommended';
+import { flatConfigs, legacyConfigs } from './configs';
 
 declare const __PLUGIN_VERSION__: string;
 
@@ -27,9 +27,6 @@ const plugin: ESLint.Plugin = {
     },
 };
 
-plugin.configs = {
-    recommended: legacyRecommended,
-    'flat/recommended': flatRecommended(plugin),
-};
+plugin.configs = { ...legacyConfigs(plugin), ...flatConfigs(plugin) };
 
 export default plugin;

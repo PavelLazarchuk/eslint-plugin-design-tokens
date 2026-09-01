@@ -1,4 +1,4 @@
-import { createStyleRule, docsUrl } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl, stringArray } from '../utils/createStyleRule';
 import {
     DEFAULT_ZINDEX_ALLOWLIST,
     DEFAULT_ZINDEX_PROPERTIES,
@@ -8,34 +8,24 @@ import {
 export default createStyleRule({
     description: 'Disallow hardcoded z-index values in style objects and styled-components',
     url: docsUrl('no-hardcoded-z-index'),
-    schema: [
-        {
-            type: 'object',
-            properties: {
-                allowlist: {
-                    type: 'array',
-                    items: { type: ['string', 'number'] },
-                    uniqueItems: true,
-                },
-                properties: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-            },
-            additionalProperties: false,
-        },
-    ],
+    schemaProperties: {
+        allowlist: { type: 'array', items: { type: ['string', 'number'] }, uniqueItems: true },
+        properties: stringArray,
+    },
+    defaultOptions: {
+        allowlist: DEFAULT_ZINDEX_ALLOWLIST,
+        properties: DEFAULT_ZINDEX_PROPERTIES,
+    },
     messages: {
         hardcodedZIndex:
             'Hardcoded z-index value "{{value}}" for "{{property}}" — use a theme token instead.',
     },
     createChecker(options) {
         const allowlist = new Set(
-            (
-                (options.allowlist as (string | number)[] | undefined) ?? DEFAULT_ZINDEX_ALLOWLIST
-            ).map(entry => String(entry).trim())
+            (options.allowlist as (string | number)[]).map(entry => String(entry).trim())
         );
         const properties = new Set(
-            ((options.properties as string[] | undefined) ?? DEFAULT_ZINDEX_PROPERTIES).map(entry =>
-                entry.toLowerCase()
-            )
+            (options.properties as string[]).map(entry => entry.toLowerCase())
         );
 
         return declaration => {

@@ -25,10 +25,14 @@ styled.div`
 
 ## Options
 
-| Option       | Type       | Default                                                                                                                                                |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `properties` | `string[]` | `margin`, `margin-top/right/bottom/left`, `padding`, `padding-top/right/bottom/left`, `gap`, `row-gap`, `column-gap`, `top`, `right`, `bottom`, `left` |
-| `allowlist`  | `string[]` | `[]`                                                                                                                                                   |
+| Option                  | Type       | Default                                                                                                                                                |
+| ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `properties`            | `string[]` | `margin`, `margin-top/right/bottom/left`, `padding`, `padding-top/right/bottom/left`, `gap`, `row-gap`, `column-gap`, `top`, `right`, `bottom`, `left` |
+| `allowlist`             | `string[]` | `[]`                                                                                                                                                   |
+| `allowlistPatterns`     | `string[]` | `[]`                                                                                                                                                   |
+| `ignorePropertyPattern` | `string`   | —                                                                                                                                                      |
+
+`allowlistPatterns` and `ignorePropertyPattern` are read by every rule in this plugin: the first excuses a value that any of the patterns matches, the second skips a declaration whose property matches it. Both are regular expressions written as strings and compiled with the `u` flag, and a property is matched by its CSS spelling — `backgroundColor` in a style object is tested as `background-color`.
 
 `width` and `height` are deliberately left out — fixed sizes are legitimate far more often than fixed margins are. Add them when your system says otherwise:
 

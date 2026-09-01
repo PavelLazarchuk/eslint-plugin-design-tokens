@@ -61,7 +61,31 @@ export default [
 }
 ```
 
-The recommended config turns every rule on as `warn`.
+Three configs ship, each in a flat and a legacy form:
+
+| Flat               | Legacy        | Severity | Rules                                         |
+| ------------------ | ------------- | -------- | --------------------------------------------- |
+| `flat/recommended` | `recommended` | `warn`   | the curated set — every rule, as it happens   |
+| `flat/strict`      | `strict`      | `error`  | the same set, as errors                       |
+| `flat/all`         | `all`         | `error`  | every rule the plugin exports, curated or not |
+
+`recommended` is the one to start from: a warning is enough to stop new hardcodes without failing a build over the ones already there. `strict` is the same set once the backlog is gone. `all` is derived from the plugin's rule list rather than a curated one, so a rule added in a later release turns on with it.
+
+### Options every rule takes
+
+Alongside its own options, every rule reads `allowlistPatterns` and `ignorePropertyPattern` — regular expressions, written as strings, for the cases a list of exact values cannot name:
+
+```js
+{
+    'design-tokens/no-hardcoded-colors': [
+        'warn',
+        // Legacy variables and SVG paint are someone else's problem for now.
+        { allowlistPatterns: ['^rgb\\(var\\('], ignorePropertyPattern: '^(fill|stroke)$' },
+    ],
+}
+```
+
+`allowlistPatterns` excuses a value that any of the patterns matches; `ignorePropertyPattern` skips a declaration whose property matches it, by its CSS spelling — `backgroundColor` in a style object is tested as `background-color`. Each rule's own defaults are declared as `meta.defaultOptions`, so `eslint --print-config` shows what a rule will do before you configure it.
 
 ## What gets checked
 

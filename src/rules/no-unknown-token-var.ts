@@ -1,4 +1,4 @@
-import { createStyleRule, docsUrl } from '../utils/createStyleRule';
+import { createStyleRule, docsUrl, stringArray } from '../utils/createStyleRule';
 import {
     DEFAULT_TOKEN_ALLOWLIST,
     DEFAULT_TOKEN_PREFIXES,
@@ -10,37 +10,29 @@ import {
 export default createStyleRule({
     description: 'Disallow CSS custom properties outside the design system',
     url: docsUrl('no-unknown-token-var'),
-    schema: [
-        {
-            type: 'object',
-            properties: {
-                prefixes: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-                allowlist: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-            },
-            additionalProperties: false,
-        },
-    ],
+    schemaProperties: { prefixes: stringArray, allowlist: stringArray },
+    defaultOptions: { prefixes: DEFAULT_TOKEN_PREFIXES, allowlist: DEFAULT_TOKEN_ALLOWLIST },
+    ownsAllowlistPatterns: true,
     messages: {
         unknownTokenVar:
             'Unknown design token variable "{{variable}}" for "{{property}}" — use a variable from the design system.',
     },
-    createChecker(options) {
-        const prefixes = ((options.prefixes as string[] | undefined) ?? DEFAULT_TOKEN_PREFIXES).map(
-            normalizeVariable
-        );
-        const allowlist = new Set(
-            ((options.allowlist as string[] | undefined) ?? DEFAULT_TOKEN_ALLOWLIST).map(
-                normalizeVariable
-            )
-        );
+    createChecker(options, allowlistPatterns) {
+        const prefixes = (options.prefixes as string[]).map(normalizeVariable);
+        const allowlist = new Set((options.allowlist as string[]).map(normalizeVariable));
 
-        if (prefixes.length === 0 && allowlist.size === 0) return () => null;
+        if (prefixes.length === 0 && allowlist.size === 0 && allowlistPatterns.length === 0)
+            return () => null;
 
         return declaration => {
             const { property, value } = declaration;
 
             return collectVariables(value)
-                .filter(variable => !isKnownVariable(variable, prefixes, allowlist))
+                .filter(
+                    variable =>
+                        !isKnownVariable(variable, prefixes, allowlist) &&
+                        !allowlistPatterns.some(pattern => pattern.test(variable))
+                )
                 .map(variable => ({
                     messageId: 'unknownTokenVar',
                     data: { variable, property },

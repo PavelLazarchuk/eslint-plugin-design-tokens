@@ -44,6 +44,21 @@ ruleTester.run('no-unknown-token-var', rule, {
     invalid: [
         {
             code: '<Box sx={{ color: "var(--brand-primary)" }} />',
+            options: [{ allowlistPatterns: ['^--ds-'] }],
+            errors: [{ messageId: 'unknownTokenVar' }],
+        },
+        {
+            code: '<Box sx={{ border: "var(--ds-width) solid var(--legacy-color)" }} />',
+            options: [{ allowlistPatterns: ['^--ds-'] }],
+            errors: [
+                {
+                    messageId: 'unknownTokenVar',
+                    data: { variable: '--legacy-color', property: 'border' },
+                },
+            ],
+        },
+        {
+            code: '<Box sx={{ color: "var(--brand-primary)" }} />',
             options: [{ prefixes: ['ds-'] }],
             errors: [
                 {

@@ -24,9 +24,13 @@ styled.div`
 
 ## Options
 
-| Option      | Type       | Default                                              |
-| ----------- | ---------- | ---------------------------------------------------- |
-| `allowlist` | `string[]` | `['transparent', 'inherit', 'currentColor', 'none']` |
+| Option                  | Type       | Default                                              |
+| ----------------------- | ---------- | ---------------------------------------------------- |
+| `allowlist`             | `string[]` | `['transparent', 'inherit', 'currentColor', 'none']` |
+| `allowlistPatterns`     | `string[]` | `[]`                                                 |
+| `ignorePropertyPattern` | `string`   | —                                                    |
+
+`allowlistPatterns` and `ignorePropertyPattern` are read by every rule in this plugin: the first excuses a value that any of the patterns matches, the second skips a declaration whose property matches it. Both are regular expressions written as strings and compiled with the `u` flag, and a property is matched by its CSS spelling — `backgroundColor` in a style object is tested as `background-color`.
 
 `allowlist` **replaces** the default list rather than extending it, so include the defaults you still want:
 

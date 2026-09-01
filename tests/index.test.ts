@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { Linter } from 'eslint';
 import plugin from '../src/index';
 
+function legacyRules(name: string): Partial<Linter.RulesRecord> {
+    return (plugin.configs?.[name] as Linter.LegacyConfig).rules ?? {};
+}
+
+function flatRules(name: string): Partial<Linter.RulesRecord> {
+    const [config] = plugin.configs?.[`flat/${name}`] as Linter.Config[];
+    return config?.rules ?? {};
+}
+
 describe('plugin', () => {
     it('exposes every rule', () => {
         expect(Object.keys(plugin.rules ?? {})).toEqual([
@@ -17,16 +26,44 @@ describe('plugin', () => {
         ]);
     });
 
-    it('lists every rule in every config', () => {
+    it.each(['recommended', 'strict', 'all'])('lists every rule in the %s configs', name => {
         const expected = Object.keys(plugin.rules ?? {})
-            .map(name => `design-tokens/${name}`)
+            .map(rule => `design-tokens/${rule}`)
             .sort();
 
-        const legacy = plugin.configs?.recommended as Linter.Config;
-        const [flat] = plugin.configs?.['flat/recommended'] as Linter.Config[];
+        expect(Object.keys(legacyRules(name)).sort()).toEqual(expected);
+        expect(Object.keys(flatRules(name)).sort()).toEqual(expected);
+    });
 
-        expect(Object.keys(legacy.rules ?? {}).sort()).toEqual(expected);
-        expect(Object.keys(flat?.rules ?? {}).sort()).toEqual(expected);
+    it.each([
+        ['recommended', 'warn'],
+        ['strict', 'error'],
+        ['all', 'error'],
+    ])('the %s configs set every rule to %s', (name, severity) => {
+        expect(Object.values(legacyRules(name))).toSatisfy((severities: unknown[]) =>
+            severities.every(entry => entry === severity)
+        );
+        expect(Object.values(flatRules(name))).toSatisfy((severities: unknown[]) =>
+            severities.every(entry => entry === severity)
+        );
+    });
+
+    it('marks a rule as recommended exactly when the recommended config has it', () => {
+        const recommended = new Set(Object.keys(legacyRules('recommended')));
+
+        for (const [name, rule] of Object.entries(plugin.rules ?? {})) {
+            const meta = typeof rule === 'object' ? rule.meta : undefined;
+            expect(meta?.docs?.recommended).toBe(recommended.has(`design-tokens/${name}`));
+        }
+    });
+
+    it('declares the defaults of every rule as defaultOptions', () => {
+        for (const rule of Object.values(plugin.rules ?? {})) {
+            const meta = typeof rule === 'object' ? rule.meta : undefined;
+            const [defaults] = (meta?.defaultOptions ?? []) as Record<string, unknown>[];
+
+            expect(defaults).toMatchObject({ allowlistPatterns: [] });
+        }
     });
 
     it('points every rule at its own docs page', () => {
@@ -38,9 +75,46 @@ describe('plugin', () => {
         }
     });
 
-    it('ships a legacy config and a flat config', () => {
-        expect(plugin.configs?.recommended).toMatchObject({ plugins: ['design-tokens'] });
-        expect(Array.isArray(plugin.configs?.['flat/recommended'])).toBe(true);
+    it.each(['recommended', 'strict', 'all'])('ships a legacy and a flat %s config', name => {
+        expect(plugin.configs?.[name]).toMatchObject({ plugins: ['design-tokens'] });
+        expect(Array.isArray(plugin.configs?.[`flat/${name}`])).toBe(true);
+    });
+
+    it('names the option when a pattern will not compile', () => {
+        expect(() =>
+            new Linter().verify(
+                'styled.div`color: #fff;`',
+                [
+                    ...(plugin.configs!['flat/recommended'] as Linter.Config[]),
+                    {
+                        languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
+                        rules: {
+                            'design-tokens/no-hardcoded-colors': [
+                                'warn',
+                                { allowlistPatterns: ['('] },
+                            ],
+                        },
+                    },
+                ],
+                'example.js'
+            )
+        ).toThrow(/Invalid regular expression in "allowlistPatterns": \(/);
+    });
+
+    it('reports as errors through the flat strict config', () => {
+        const messages = new Linter().verify(
+            'styled.div`color: #fff;`',
+            [
+                ...(plugin.configs!['flat/strict'] as Linter.Config[]),
+                { languageOptions: { ecmaVersion: 2022, sourceType: 'module' } },
+            ],
+            'example.js'
+        );
+
+        expect(messages.map(message => message.ruleId)).toEqual([
+            'design-tokens/no-hardcoded-colors',
+        ]);
+        expect(messages.every(message => message.severity === 2)).toBe(true);
     });
 
     it('reports through the flat recommended config', () => {

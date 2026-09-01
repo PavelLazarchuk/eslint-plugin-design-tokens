@@ -23,11 +23,11 @@ const samples = [
     },
 ];
 
-function verifyFlat(code) {
+function verifyFlat(code, config) {
     return new Linter().verify(
         code,
         [
-            ...plugin.configs['flat/recommended'],
+            ...plugin.configs[`flat/${config}`],
             {
                 languageOptions: {
                     ecmaVersion: 2022,
@@ -40,7 +40,7 @@ function verifyFlat(code) {
     );
 }
 
-function verifyLegacy(code) {
+function verifyLegacy(code, config) {
     const linter = new Linter({ configType: 'eslintrc' });
 
     for (const [name, rule] of Object.entries(plugin.rules))
@@ -52,24 +52,31 @@ function verifyLegacy(code) {
             sourceType: 'module',
             ecmaFeatures: { jsx: true },
         },
-        rules: plugin.configs.recommended.rules,
+        rules: plugin.configs[config].rules,
     });
 }
 
 const verify = major >= 9 ? verifyFlat : verifyLegacy;
 
 for (const { code, expected } of samples) {
-    const messages = verify(code);
+    // `recommended` warns, `strict` and `all` report the same rules as errors.
+    for (const [config, severity] of [
+        ['recommended', 1],
+        ['strict', 2],
+        ['all', 2],
+    ]) {
+        const messages = verify(code, config);
 
-    assert.deepEqual(
-        messages.map(message => message.ruleId),
-        expected,
-        `ESLint ${Linter.version} reported ${JSON.stringify(messages)} for ${code}`
-    );
-    assert.ok(
-        messages.every(message => message.severity === 1),
-        `ESLint ${Linter.version} did not apply the recommended severity for ${code}`
-    );
+        assert.deepEqual(
+            messages.map(message => message.ruleId),
+            expected,
+            `ESLint ${Linter.version} reported ${JSON.stringify(messages)} for ${code} under ${config}`
+        );
+        assert.ok(
+            messages.every(message => message.severity === severity),
+            `ESLint ${Linter.version} did not apply the ${config} severity for ${code}`
+        );
+    }
 }
 
 console.log(`ESLint ${Linter.version}: ${samples.length} samples reported as expected.`);

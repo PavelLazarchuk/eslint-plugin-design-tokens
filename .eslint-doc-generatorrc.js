@@ -2,7 +2,7 @@ import prettier from 'prettier';
 
 /** @type {import('eslint-doc-generator').GenerateOptions} */
 export default {
-    ignoreConfig: ['flat/recommended'],
+    ignoreConfig: ['flat/recommended', 'flat/strict', 'flat/all', 'strict', 'all'],
     ruleDocSectionInclude: ['Options'],
     ruleDocTitleFormat: 'prefix-name',
     urlConfigs: 'https://github.com/PavelLazarchuk/eslint-plugin-design-tokens#setup',

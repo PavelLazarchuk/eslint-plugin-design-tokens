@@ -24,10 +24,14 @@ styled.div`
 
 ## Options
 
-| Option       | Type       | Default                                                                                                                                           |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `properties` | `string[]` | `border`, `border-top/right/bottom/left`, `border-inline`, `border-block`, `border-width`, the four `border-*-width`s, `outline`, `outline-width` |
-| `allowlist`  | `string[]` | `[]`                                                                                                                                              |
+| Option                  | Type       | Default                                                                                                                                           |
+| ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `properties`            | `string[]` | `border`, `border-top/right/bottom/left`, `border-inline`, `border-block`, `border-width`, the four `border-*-width`s, `outline`, `outline-width` |
+| `allowlist`             | `string[]` | `[]`                                                                                                                                              |
+| `allowlistPatterns`     | `string[]` | `[]`                                                                                                                                              |
+| `ignorePropertyPattern` | `string`   | —                                                                                                                                                 |
+
+`allowlistPatterns` and `ignorePropertyPattern` are read by every rule in this plugin: the first excuses a value that any of the patterns matches, the second skips a declaration whose property matches it. Both are regular expressions written as strings and compiled with the `u` flag, and a property is matched by its CSS spelling — `backgroundColor` in a style object is tested as `background-color`.
 
 `border-color` is not in the default list, because a whole-value color is already [`no-hardcoded-colors`](./no-hardcoded-colors.md)' job and listing it here would report the same hardcode twice.
 
