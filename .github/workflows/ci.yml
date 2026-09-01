@@ -44,3 +44,29 @@ jobs:
 
             - name: Tarball contents review
               run: npm run pack:verify
+
+    compat:
+        name: ESLint ${{ matrix.eslint }}
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                eslint: ['8.57.0', '9', '10']
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - run: npm ci
+
+            - name: Build
+              run: npm run build
+
+            - name: Install ESLint ${{ matrix.eslint }}
+              run: npm install --no-save eslint@${{ matrix.eslint }}
+
+            - name: Plugin loads and reports on the peer range
+              run: npm run compat

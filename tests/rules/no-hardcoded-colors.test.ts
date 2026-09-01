@@ -1,5 +1,5 @@
 import rule from '../../src/rules/no-hardcoded-colors';
-import { ruleTester } from '../ruleTester';
+import { ruleTester, tsRuleTester } from '../ruleTester';
 
 ruleTester.run('no-hardcoded-colors', rule, {
     valid: [
@@ -31,7 +31,12 @@ ruleTester.run('no-hardcoded-colors', rule, {
         'notStyled.div`color: #fff;`',
         'styled(Button)',
         'makeStyles({ color: "#fff" })',
-        'styled.div(base, { color: "#fff" })',
+
+        // `.attrs` configures props, not styles.
+        'styled.div.attrs({ color: "#fff" })',
+
+        // A template with something in it is not a value the rule can read.
+        '<Box sx={{ color: `${brand}` }} />',
     ],
     invalid: [
         {
@@ -86,10 +91,71 @@ ruleTester.run('no-hardcoded-colors', rule, {
             errors: [{ messageId: 'hardcodedColor' }],
         },
         {
-            // The default allowlist is replaced, not extended.
+            code: 'css({ color: "#fff" })',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'style({ color: "#fff" })',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'keyframes`from { color: #fff; }`',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'createGlobalStyle`color: #fff;`',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'injectGlobal`color: #fff;`',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'styled.div({ color: "#fff" }, { background: "#000" })',
+            errors: [{ messageId: 'hardcodedColor' }, { messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'styled.div.attrs({ type: "text" })`color: #fff;`',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: 'styled.div.attrs({ type: "text" })({ color: "#fff" })',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: '<Box sx={theme => ({ color: "#fff", padding: theme.spacing(1) })} />',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: '<Box sx={[base, active && { color: "#fff" }]} />',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: '<Box sx={active ? { color: "#fff" } : base} />',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
+            code: '<Box sx={{ color: `#fff` }} />',
+            errors: [{ messageId: 'hardcodedColor' }],
+        },
+        {
             code: '<Box sx={{ color: "transparent" }} />',
             options: [{ allowlist: [] }],
             errors: [{ messageId: 'hardcodedColor' }],
+        },
+    ],
+});
+
+tsRuleTester.run('no-hardcoded-colors (typescript)', rule, {
+    valid: ['const styles = { color: theme.palette.primary.main } as const;'],
+    invalid: [
+        {
+            code: 'const styles = { color: "#fff" } as const;\n<Box sx={styles} />;',
+            errors: [{ messageId: 'hardcodedColor', line: 1, column: 18 }],
+        },
+        {
+            code: 'const styles = { color: "#fff" } satisfies Styles;\n<Box sx={styles} />;',
+            errors: [{ messageId: 'hardcodedColor', line: 1, column: 18 }],
         },
     ],
 });

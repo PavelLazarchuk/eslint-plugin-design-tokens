@@ -11,6 +11,7 @@ const RULES: Linter.RulesRecord = {
     'design-tokens/no-hardcoded-borders': 'warn',
     'design-tokens/no-hardcoded-transitions': 'warn',
     'design-tokens/no-hardcoded-z-index': 'warn',
+    'design-tokens/no-unknown-token-var': 'warn',
 };
 
 /** `.eslintrc` form — referenced through `extends: ['plugin:design-tokens/recommended']`. */

@@ -18,7 +18,7 @@ export interface StyleRuleConfig {
     messages: Record<string, string>;
     createChecker(
         options: Record<string, unknown>
-    ): (declaration: StyleDeclaration) => Problem | null;
+    ): (declaration: StyleDeclaration) => Problem | Problem[] | null;
 }
 
 export function docsUrl(name: string): string {
@@ -47,9 +47,12 @@ export function createStyleRule(config: StyleRuleConfig): Rule.RuleModule {
                     const key = `${declaration.property}:${start.line}:${start.column}:${end.line}:${end.column}`;
                     if (reported.has(key)) continue;
 
-                    const problem = check(declaration);
-                    if (problem) {
-                        reported.add(key);
+                    const result = check(declaration);
+                    const problems = Array.isArray(result) ? result : result ? [result] : [];
+                    if (problems.length === 0) continue;
+
+                    reported.add(key);
+                    for (const problem of problems) {
                         context.report({
                             loc: declaration.loc,
                             messageId: problem.messageId,

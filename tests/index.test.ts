@@ -13,7 +13,29 @@ describe('plugin', () => {
             'no-hardcoded-borders',
             'no-hardcoded-transitions',
             'no-hardcoded-z-index',
+            'no-unknown-token-var',
         ]);
+    });
+
+    it('lists every rule in every config', () => {
+        const expected = Object.keys(plugin.rules ?? {})
+            .map(name => `design-tokens/${name}`)
+            .sort();
+
+        const legacy = plugin.configs?.recommended as Linter.Config;
+        const [flat] = plugin.configs?.['flat/recommended'] as Linter.Config[];
+
+        expect(Object.keys(legacy.rules ?? {}).sort()).toEqual(expected);
+        expect(Object.keys(flat?.rules ?? {}).sort()).toEqual(expected);
+    });
+
+    it('points every rule at its own docs page', () => {
+        for (const [name, rule] of Object.entries(plugin.rules ?? {})) {
+            const url = typeof rule === 'object' ? rule.meta?.docs?.url : undefined;
+            expect(url).toBe(
+                `https://github.com/PavelLazarchuk/eslint-plugin-design-tokens/blob/main/docs/rules/${name}.md`
+            );
+        }
     });
 
     it('ships a legacy config and a flat config', () => {

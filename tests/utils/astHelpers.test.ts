@@ -62,7 +62,9 @@ describe('isStyledTaggedTemplate', () => {
         ['css`color: red;`', false],
         ['notStyled.div`color: red;`', false],
         ['styled["div"]`color: red;`', false],
-        ['styled.div.attrs({})`color: red;`', false],
+        ['styled.div.attrs({})`color: red;`', true],
+        ['styled(Button).withConfig({})`color: red;`', true],
+        ['styled.div.attrs`color: red;`', false],
     ])('%s → %s', (code, expected) => {
         expect(isStyledTaggedTemplate(find(code, 'TaggedTemplateExpression'))).toBe(expected);
     });
@@ -71,6 +73,9 @@ describe('isStyledTaggedTemplate', () => {
 describe('isCssTaggedTemplate', () => {
     it.each([
         ['css`color: red;`', true],
+        ['keyframes`from { color: red; }`', true],
+        ['createGlobalStyle`color: red;`', true],
+        ['injectGlobal`color: red;`', true],
         ['styled.div`color: red;`', false],
         ['notCss`color: red;`', false],
         ['css.div`color: red;`', false],
@@ -98,7 +103,12 @@ describe('isStyledObjectCall', () => {
         ['styled(Button)(() => ({ color: "red" }))', true],
         ['styled.div(function () { return { color: "red" }; })', true],
         ['styled.div(() => { const x = 1; })', false],
-        ['styled.div(base, { color: "red" })', false],
+        ['styled.div(base, { color: "red" })', true],
+        ['css({ color: "red" })', true],
+        ['style({ color: "red" })', true],
+        ['keyframes({ from: { color: "red" } })', true],
+        ['styled.div.attrs({ color: "red" })', false],
+        ['styled.div.attrs({ type: "text" })({ color: "red" })', true],
         ['styled.div(base)', false],
         ['styled(Button)', false],
         ['makeStyles({ color: "red" })', false],

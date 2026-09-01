@@ -9,6 +9,14 @@ interface Literal extends AstNode {
     value: unknown;
 }
 
+interface TemplateElement extends AstNode {
+    value: { raw: string; cooked?: string | null };
+}
+
+interface TemplateLiteral extends AstNode {
+    quasis: TemplateElement[];
+}
+
 interface MemberExpression extends AstNode {
     object: AstNode;
     property: AstNode;
@@ -40,6 +48,24 @@ interface Property extends AstNode {
 
 interface ObjectExpression extends AstNode {
     properties: AstNode[];
+}
+
+interface ArrayExpression extends AstNode {
+    elements: (AstNode | null)[];
+}
+
+interface LogicalExpression extends AstNode {
+    left: AstNode;
+    right: AstNode;
+}
+
+interface ConditionalExpression extends AstNode {
+    consequent: AstNode;
+    alternate: AstNode;
+}
+
+interface WrappedExpression extends AstNode {
+    expression: AstNode;
 }
 
 interface JSXAttribute extends AstNode {
@@ -80,6 +106,20 @@ const TARGET_PROPS = new Set(['sx', 'style', 'styles']);
 const STYLED_FACTORY = 'styled';
 const CSS_FACTORY = 'css';
 
+const CSS_TAGS = new Set([CSS_FACTORY, 'keyframes', 'createGlobalStyle', 'injectGlobal']);
+
+const CSS_OBJECT_FACTORIES = new Set([...CSS_TAGS, 'style']);
+
+const STYLED_CONFIG_METHODS = new Set(['attrs', 'withConfig']);
+
+const WRAPPER_EXPRESSIONS = new Set([
+    'TSAsExpression',
+    'TSSatisfiesExpression',
+    'TSNonNullExpression',
+    'TSTypeAssertion',
+    'TSInstantiationExpression',
+]);
+
 function isNode(value: unknown): value is AstNode {
     return (
         typeof value === 'object' && value !== null && typeof (value as AstNode).type === 'string'
@@ -94,8 +134,12 @@ function isStyledIdentifier(value: unknown): boolean {
     return isType<Identifier>(value, 'Identifier') && value.name === STYLED_FACTORY;
 }
 
-function isCssFactory(value: unknown): boolean {
-    return isType<Identifier>(value, 'Identifier') && value.name === CSS_FACTORY;
+function isCssTag(value: unknown): boolean {
+    return isType<Identifier>(value, 'Identifier') && CSS_TAGS.has(value.name);
+}
+
+function isCssObjectFactory(value: unknown): boolean {
+    return isType<Identifier>(value, 'Identifier') && CSS_OBJECT_FACTORIES.has(value.name);
 }
 
 function isStyledFactory(value: unknown): boolean {
@@ -103,62 +147,112 @@ function isStyledFactory(value: unknown): boolean {
         return (
             !value.computed &&
             isStyledIdentifier(value.object) &&
-            isType(value.property, 'Identifier')
+            isType<Identifier>(value.property, 'Identifier') &&
+            !STYLED_CONFIG_METHODS.has(value.property.name)
         );
     }
     if (isType<CallExpression>(value, 'CallExpression')) {
-        return isStyledIdentifier(value.callee);
+        if (isStyledIdentifier(value.callee)) return true;
+
+        const { callee } = value;
+        return (
+            isType<MemberExpression>(callee, 'MemberExpression') &&
+            !callee.computed &&
+            isType<Identifier>(callee.property, 'Identifier') &&
+            STYLED_CONFIG_METHODS.has(callee.property.name) &&
+            isStyledFactory(callee.object)
+        );
     }
     return false;
 }
 
-function constantObject(variable: ScopeVariable): ObjectExpression | null {
+function constantInit(variable: ScopeVariable): AstNode | null {
     if (variable.defs.length !== 1) return null;
 
     const definition = variable.defs[0] as VariableDefinition;
     if (definition.type !== 'Variable' || definition.parent?.kind !== 'const') return null;
 
     const { init } = definition.node as { init?: unknown };
-    return isType<ObjectExpression>(init, 'ObjectExpression') ? init : null;
+    return isNode(init) ? init : null;
 }
 
-function resolveObject(
-    expression: AstNode | null,
-    resolver?: ScopeProvider
-): ObjectExpression | null {
-    if (expression === null) return null;
-    if (isType<ObjectExpression>(expression, 'ObjectExpression')) return expression;
-    if (!resolver || !isType<Identifier>(expression, 'Identifier')) return null;
+function constantValue(expression: Identifier, resolver?: ScopeProvider): AstNode | null {
+    if (!resolver) return null;
 
     const { name } = expression;
     let scope: Scope | null = resolver.getScope(expression as never);
 
     while (scope !== null) {
         const variable = scope.variables.find(entry => entry.name === name);
-        if (variable) return constantObject(variable);
+        if (variable) return constantInit(variable);
         scope = scope.upper;
     }
     return null;
 }
 
-function styledObjectArgument(node: AstNode, resolver?: ScopeProvider): ObjectExpression | null {
-    if (!isType<CallExpression>(node, 'CallExpression')) return null;
-    if (!isStyledFactory(node.callee) || node.arguments.length !== 1) return null;
+/**
+ * Every style object an expression can stand for: the object itself, the members of an `sx`
+ * array, the object a function returns, and — one hop, `const` only — the object a name is
+ * bound to.
+ */
+function resolveObjects(
+    expression: AstNode | null,
+    resolver: ScopeProvider | undefined,
+    seen: Set<AstNode>,
+    out: ObjectExpression[]
+): void {
+    if (expression === null || seen.has(expression)) return;
+    seen.add(expression);
 
-    const argument = node.arguments[0];
-    if (!argument) return null;
-    if (argument.type !== 'ArrowFunctionExpression' && argument.type !== 'FunctionExpression')
-        return resolveObject(argument, resolver);
-
-    const body = (argument as FunctionLike).body;
-    if (!isType<BlockStatement>(body, 'BlockStatement')) return resolveObject(body, resolver);
-
-    for (const statement of body.body) {
-        if (!isType<ReturnStatement>(statement, 'ReturnStatement')) continue;
-        const returned = resolveObject(statement.argument, resolver);
-        if (returned) return returned;
+    if (WRAPPER_EXPRESSIONS.has(expression.type)) {
+        resolveObjects((expression as WrappedExpression).expression, resolver, seen, out);
+        return;
     }
-    return null;
+    if (isType<ObjectExpression>(expression, 'ObjectExpression')) {
+        out.push(expression);
+        return;
+    }
+    if (isType<ArrayExpression>(expression, 'ArrayExpression')) {
+        for (const element of expression.elements) resolveObjects(element, resolver, seen, out);
+        return;
+    }
+    if (isType<LogicalExpression>(expression, 'LogicalExpression')) {
+        resolveObjects(expression.left, resolver, seen, out);
+        resolveObjects(expression.right, resolver, seen, out);
+        return;
+    }
+    if (isType<ConditionalExpression>(expression, 'ConditionalExpression')) {
+        resolveObjects(expression.consequent, resolver, seen, out);
+        resolveObjects(expression.alternate, resolver, seen, out);
+        return;
+    }
+    if (expression.type === 'ArrowFunctionExpression' || expression.type === 'FunctionExpression') {
+        const { body } = expression as FunctionLike;
+        if (!isType<BlockStatement>(body, 'BlockStatement')) {
+            resolveObjects(body, resolver, seen, out);
+            return;
+        }
+        for (const statement of body.body) {
+            if (isType<ReturnStatement>(statement, 'ReturnStatement'))
+                resolveObjects(statement.argument, resolver, seen, out);
+        }
+        return;
+    }
+    if (isType<Identifier>(expression, 'Identifier'))
+        resolveObjects(constantValue(expression, resolver), resolver, seen, out);
+}
+
+function styleObjects(expression: AstNode | null, resolver?: ScopeProvider): ObjectExpression[] {
+    const out: ObjectExpression[] = [];
+    resolveObjects(expression, resolver, new Set(), out);
+    return out;
+}
+
+function styleCallObjects(node: AstNode, resolver?: ScopeProvider): ObjectExpression[] {
+    if (!isType<CallExpression>(node, 'CallExpression')) return [];
+    if (!isStyledFactory(node.callee) && !isCssObjectFactory(node.callee)) return [];
+
+    return node.arguments.flatMap(argument => styleObjects(argument, resolver));
 }
 
 export function isTargetProp(node: AstNode): boolean {
@@ -183,14 +277,9 @@ function cssPropExpression(node: AstNode): AstNode | null {
     const expression = jsxAttributeExpression(node, name => name === CSS_FACTORY);
     if (expression === null) return null;
 
-    if (isType<ObjectExpression>(expression, 'ObjectExpression')) return expression;
-    if (isType<Identifier>(expression, 'Identifier')) return expression;
-    if (
-        isType<TaggedTemplateExpression>(expression, 'TaggedTemplateExpression') &&
-        isCssFactory(expression.tag)
-    )
-        return expression;
-    return null;
+    if (isType<TaggedTemplateExpression>(expression, 'TaggedTemplateExpression'))
+        return isCssTag(expression.tag) ? expression : null;
+    return expression;
 }
 
 export function isCssPropAttribute(node: AstNode): boolean {
@@ -205,13 +294,11 @@ export function isStyledTaggedTemplate(node: AstNode): boolean {
 }
 
 export function isCssTaggedTemplate(node: AstNode): boolean {
-    return (
-        isType<TaggedTemplateExpression>(node, 'TaggedTemplateExpression') && isCssFactory(node.tag)
-    );
+    return isType<TaggedTemplateExpression>(node, 'TaggedTemplateExpression') && isCssTag(node.tag);
 }
 
 export function isStyledObjectCall(node: AstNode): boolean {
-    return styledObjectArgument(node) !== null;
+    return styleCallObjects(node).length > 0;
 }
 
 function normalizeProperty(name: string): string {
@@ -222,6 +309,19 @@ function propertyName(key: AstNode, computed: boolean): string | null {
     if (computed) return null;
     if (isType<Identifier>(key, 'Identifier')) return key.name;
     if (isType<Literal>(key, 'Literal') && typeof key.value === 'string') return key.value;
+    return null;
+}
+
+function literalValue(node: AstNode): string | null {
+    if (isType<Literal>(node, 'Literal')) {
+        const { value } = node;
+        return typeof value === 'string' || typeof value === 'number' ? String(value) : null;
+    }
+    if (isType<TemplateLiteral>(node, 'TemplateLiteral') && node.quasis.length === 1) {
+        const quasi = node.quasis[0];
+        if (!quasi) return null;
+        return quasi.value.cooked ?? quasi.value.raw;
+    }
     return null;
 }
 
@@ -237,39 +337,35 @@ function collectFromObject(object: ObjectExpression, out: StyleDeclaration[]): v
 
         const name = propertyName(property.key, property.computed);
         if (name === null || !property.loc) continue;
-        if (!isType<Literal>(property.value, 'Literal')) continue;
 
-        const literal = property.value.value;
-        if (typeof literal !== 'string' && typeof literal !== 'number') continue;
+        const value = literalValue(property.value);
+        if (value === null) continue;
 
         out.push({
             property: normalizeProperty(name),
-            value: String(literal).trim(),
+            value: value.trim(),
             node: property,
             loc: property.loc,
         });
     }
 }
 
-export function getPropDeclarations(node: AstNode, resolver?: ScopeProvider): StyleDeclaration[] {
-    const object = resolveObject(styledPropExpression(node) ?? cssPropExpression(node), resolver);
-    if (object === null) return [];
-
+function collectFromObjects(objects: ObjectExpression[]): StyleDeclaration[] {
     const declarations: StyleDeclaration[] = [];
-    collectFromObject(object, declarations);
+    for (const object of objects) collectFromObject(object, declarations);
     return declarations;
+}
+
+export function getPropDeclarations(node: AstNode, resolver?: ScopeProvider): StyleDeclaration[] {
+    const expression = styledPropExpression(node) ?? cssPropExpression(node);
+    return collectFromObjects(styleObjects(expression, resolver));
 }
 
 export function getStyledObjectDeclarations(
     node: AstNode,
     resolver?: ScopeProvider
 ): StyleDeclaration[] {
-    const object = styledObjectArgument(node, resolver);
-    if (object === null) return [];
-
-    const declarations: StyleDeclaration[] = [];
-    collectFromObject(object, declarations);
-    return declarations;
+    return collectFromObjects(styleCallObjects(node, resolver));
 }
 
 export interface LocResolver {

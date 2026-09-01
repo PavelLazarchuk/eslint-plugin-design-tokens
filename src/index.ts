@@ -7,6 +7,7 @@ import noHardcodedRadius from './rules/no-hardcoded-radius';
 import noHardcodedBorders from './rules/no-hardcoded-borders';
 import noHardcodedTransitions from './rules/no-hardcoded-transitions';
 import noHardcodedZIndex from './rules/no-hardcoded-z-index';
+import noUnknownTokenVar from './rules/no-unknown-token-var';
 import { flatRecommended, legacyRecommended } from './configs/recommended';
 
 declare const __PLUGIN_VERSION__: string;
@@ -22,6 +23,7 @@ const plugin: ESLint.Plugin = {
         'no-hardcoded-borders': noHardcodedBorders,
         'no-hardcoded-transitions': noHardcodedTransitions,
         'no-hardcoded-z-index': noHardcodedZIndex,
+        'no-unknown-token-var': noUnknownTokenVar,
     },
 };
 

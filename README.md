@@ -75,6 +75,11 @@ The recommended config turns every rule on as `warn`.
 | `styled` template literals | ``styled.div`color: #fff;` ``                        |
 | `styled` style objects     | `styled.div({ color: '#fff' })`                      |
 | `styled` style functions   | `styled(Button)(({ theme }) => ({ color: '#fff' }))` |
+| `styled` after `.attrs`    | ``styled.div.attrs({ type: 'text' })`color: #fff;``` |
+| `css` and `style` objects  | `css({ color: '#fff' })`                             |
+| global and keyframe blocks | ``createGlobalStyle`color: #fff;` ``                 |
+| `sx` as a function         | `<Box sx={theme => ({ color: '#fff' })} />`          |
+| `sx` as an array           | `<Box sx={[base, active && { color: '#fff' }]} />`   |
 
 Both `styled.<tag>` and `styled(Component)` forms are recognised, which covers styled-components and emotion alike, and MUI's `sx` and Ant Design's `style` are read the same way:
 
@@ -84,7 +89,9 @@ Both `styled.<tag>` and `styled(Component)` forms are recognised, which covers s
 <div css={{ fontSize: '14px' }} />                   {/* emotion css prop */}
 ```
 
-`css` is matched by name — `@emotion/react`, `@emotion/css` and `styled-components` all export it, and the import is not resolved.
+`css` is matched by name — `@emotion/react`, `@emotion/css` and `styled-components` all export it, and the import is not resolved. The same goes for `keyframes`, `createGlobalStyle` and `injectGlobal`, and for `style({ ... })`, which is how vanilla-extract writes a style object. `styled.div.attrs(...)` and `.withConfig(...)` are read as configuration, so the object handed to them is left alone and only the styles that follow are checked.
+
+Every argument of a style call is read, so `styled.div(base, { color: '#fff' })` reports the second object as well as the first.
 
 Nested selectors and media queries are walked too, so `'&:hover': { color: '#fff' }` is not a hiding place.
 
@@ -95,9 +102,17 @@ const styles = { padding: '8px' }; // reported here
 <Box sx={styles} />;
 ```
 
-Only `const` is followed, and only within the file — a `let`, an import or a call result is left alone.
+Only `const` is followed, and only within the file — a `let`, an import or a call result is left alone. `as const` and `satisfies` are transparent, so `const styles = { padding: '8px' } as const` is read the same way.
 
-Nothing is reported unless the value is a literal the linter can read in full — a string or a number: `theme.palette.primary.main`, a `${...}` interpolation and anything containing `var(--...)` all pass untouched.
+Nothing is reported unless the value is a literal the linter can read in full — a string, a number, or a template literal with nothing interpolated into it: `theme.palette.primary.main` and a `${...}` interpolation pass untouched.
+
+A value containing `var(--...)` also passes the value rules, because it already comes from a token. `no-unknown-token-var` is the one rule that looks inside it, and once you tell it your namespace it reports a variable your design system does not define:
+
+```js
+{
+    'design-tokens/no-unknown-token-var': ['warn', { prefixes: ['--ds-'] }],
+}
+```
 
 Numbers are read because that is how some values are written in a style object, and each rule decides what to do with them: `zIndex: 1300` is reported and `fontWeight: 700` is reported, while MUI's unitless multipliers `padding: 8` and `borderRadius: 2` are not, since a length without a unit is not a hardcoded length.
 
@@ -118,6 +133,7 @@ Numbers are read because that is how some values are written in a style object, 
 | [no-hardcoded-transitions](docs/rules/no-hardcoded-transitions.md) | Disallow hardcoded transition values in style objects and styled-components    | ✅  |
 | [no-hardcoded-typography](docs/rules/no-hardcoded-typography.md)   | Disallow hardcoded typography values in style objects and styled-components    | ✅  |
 | [no-hardcoded-z-index](docs/rules/no-hardcoded-z-index.md)         | Disallow hardcoded z-index values in style objects and styled-components       | ✅  |
+| [no-unknown-token-var](docs/rules/no-unknown-token-var.md)         | Disallow CSS custom properties outside the design system                       | ✅  |
 
 <!-- end auto-generated rules list -->
 

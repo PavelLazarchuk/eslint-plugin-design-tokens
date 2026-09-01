@@ -46,6 +46,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
+        "compat": "node scripts/compat-check.mjs",
         "check-exports": "publint && attw --pack .",
         "size": "size-limit",
         "pack:verify": "npm pack --dry-run",
@@ -91,7 +92,9 @@
         "hardcoded-z-index",
         "borders",
         "transitions",
-        "z-index"
+        "z-index",
+        "css-variables",
+        "custom-properties"
     ],
     "author": "Pavel Lazarchuk",
     "repository": {
