@@ -15,9 +15,6 @@ ruleTester.run('no-hardcoded-shadows', rule, {
         // One tokenized layer is enough to leave the declaration alone.
         '<Card sx={{ boxShadow: "0 1px 2px var(--shadow-color)" }} />',
 
-        // A part the matcher cannot read leaves the whole layer alone.
-        '<Card sx={{ boxShadow: "0 0 0 1px color-mix(in srgb, #000 20%, transparent)" }} />',
-
         // Not a shadow property.
         '<Box sx={{ padding: "8px" }} />',
         'styled.div`border: 1px solid #000;`',
@@ -36,6 +33,10 @@ ruleTester.run('no-hardcoded-shadows', rule, {
         'notCss`box-shadow: 0 1px 2px #000;`',
     ],
     invalid: [
+        {
+            code: '<Card sx={{ boxShadow: "0 0 0 1px color-mix(in srgb, #000 20%, transparent)" }} />',
+            errors: [{ messageId: 'hardcodedShadow' }],
+        },
         // MUI sx.
         {
             code: '<Card sx={{ boxShadow: "0 1px 2px #000" }} />',

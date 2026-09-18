@@ -1,5 +1,8 @@
+import { splitTopLevel, tokenizeValue } from './valueTokens';
+
 const HEX = /^#[0-9a-fA-F]{3,8}$/;
-const FUNCTIONAL = /^(rgba?|hsla?)\(/i;
+const FUNCTIONAL = /^(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix|color|light-dark)\(/i;
+const CALL = /^(-?[a-z][a-z0-9-]*)\((.*)\)$/is;
 
 const NAMED_COLORS = new Set([
     'aliceblue',
@@ -156,6 +159,9 @@ const NAMED_COLORS = new Set([
 
 export const DEFAULT_COLOR_ALLOWLIST = ['transparent', 'inherit', 'currentColor', 'none'];
 
+const NAMELESS_PROPERTIES =
+    /^(font|font-family|grid|grid-area|grid-template|grid-template-areas|grid-template-columns|grid-template-rows|animation|animation-name|content|counter-reset|counter-increment|src|will-change|transition-property)$/;
+
 export function isColorValue(value: string): boolean {
     const normalized = value.trim();
 
@@ -166,4 +172,45 @@ export function isColorValue(value: string): boolean {
         FUNCTIONAL.test(normalized) ||
         NAMED_COLORS.has(normalized.toLowerCase())
     );
+}
+
+export function isColorProperty(property: string): boolean {
+    return !NAMELESS_PROPERTIES.test(property.trim().toLowerCase());
+}
+
+function isHardcodedColor(token: string, names: boolean): boolean {
+    if (token.includes('var(')) return false;
+    if (HEX.test(token) || FUNCTIONAL.test(token)) return true;
+
+    return names && NAMED_COLORS.has(token.toLowerCase());
+}
+
+export function findColor(
+    value: string,
+    isAllowed: (token: string) => boolean,
+    names = true
+): string | null {
+    for (const token of tokenizeValue(value)) {
+        if (isAllowed(token)) continue;
+        if (isHardcodedColor(token, names)) return token;
+
+        const call = CALL.exec(token);
+
+        if (!call) continue;
+
+        const name = (call[1] as string).toLowerCase();
+
+        if (name === 'url') continue;
+
+        const args = splitTopLevel(call[2] as string, ',');
+        const scanned = name === 'var' ? args.slice(1) : args;
+
+        for (const argument of scanned) {
+            const found = findColor(argument, isAllowed, names);
+
+            if (found !== null) return found;
+        }
+    }
+
+    return null;
 }

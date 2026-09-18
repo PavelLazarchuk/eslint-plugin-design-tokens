@@ -15,8 +15,6 @@ ruleTester.run('no-hardcoded-borders', rule, {
         '<Box sx={{ borderStyle: "solid" }} />',
         '<Box sx={{ borderColor: "#fff" }} />',
 
-        '<Box sx={{ border: "1px solid color-mix(in srgb, #000 20%, transparent)" }} />',
-
         '<Box sx={{ padding: "8px" }} />',
         'styled.div`border-radius: 4px;`',
 
@@ -33,6 +31,10 @@ ruleTester.run('no-hardcoded-borders', rule, {
         'notCss`border: 1px solid #fff;`',
     ],
     invalid: [
+        {
+            code: '<Box sx={{ border: "1px solid color-mix(in srgb, #000 20%, transparent)" }} />',
+            errors: [{ messageId: 'hardcodedBorder' }],
+        },
         {
             code: '<Box sx={{ border: "1px solid #fff" }} />',
             errors: [

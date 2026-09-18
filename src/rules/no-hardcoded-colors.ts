@@ -1,5 +1,5 @@
 import { createStyleRule, docsUrl, stringArray } from '../utils/createStyleRule';
-import { DEFAULT_COLOR_ALLOWLIST, isColorValue } from '../utils/colorMatchers';
+import { DEFAULT_COLOR_ALLOWLIST, findColor, isColorProperty } from '../utils/colorMatchers';
 
 export default createStyleRule({
     description: 'Disallow hardcoded color values in style objects and styled-components',
@@ -13,11 +13,16 @@ export default createStyleRule({
         const allowlist = new Set(
             (options.allowlist as string[]).map(entry => entry.toLowerCase())
         );
+        const isAllowed = (token: string) => allowlist.has(token.trim().toLowerCase());
 
         return declaration => {
-            const { value } = declaration;
-            if (allowlist.has(value.toLowerCase()) || !isColorValue(value)) return null;
-            return { messageId: 'hardcodedColor', data: { value } };
+            const { value, property } = declaration;
+
+            if (isAllowed(value)) return null;
+
+            const found = findColor(value, isAllowed, isColorProperty(property));
+
+            return found === null ? null : { messageId: 'hardcodedColor', data: { value: found } };
         };
     },
 });

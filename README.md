@@ -165,7 +165,9 @@ Numbers are read because that is how some values are written in a style object, 
 
 There is no autofix. Turning `'#ff0000'` into the right token needs a token map and a human decision about which token is right; a plugin guessing at that would be worse than the hardcode.
 
-Values are matched whole, and a shorthand is only read when its shape is unambiguous — `border`, `box-shadow`, `border-radius` and `transition` are, so each reports once for the whole declaration. Anything else (`background: #fff url(...)`, `font: bold 14px/1.5 Inter`) is left alone, because the rule cannot tell which part of it your system owns.
+Lengths are matched whole, and a shorthand is only read when its shape is unambiguous — `border`, `box-shadow`, `border-radius` and `transition` are, so each reports once for the whole declaration. Anything else (`font: bold 14px/1.5 Inter`) is left alone, because the rule cannot tell which part of it your system owns.
+
+Color is the exception, and it is the one case where the answer is known: a color always belongs to the system, and its syntax is recognisable wherever it sits. `no-hardcoded-colors` therefore reads inside the value — `linear-gradient(#fff, #000)`, `1px solid #ccc`, `drop-shadow(0 0 2px #000)`, and the fallback in `var(--brand, #fff)` — and reports the color it found rather than the value it was in.
 
 ## License
 
